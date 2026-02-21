@@ -46,19 +46,19 @@ export function PipelineView() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex items-center gap-3 sm:gap-4">
         <Button
           variant="ghost"
           size="icon"
           onClick={() => navigate("/jobs")}
-          className="text-muted-foreground hover:text-foreground"
+          className="text-muted-foreground hover:text-foreground flex-shrink-0"
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div>
-          <h2 className="text-xl font-bold text-foreground">Pipeline: {job.title}</h2>
-          <p className="text-sm text-muted-foreground">{job.department} · {job.location}</p>
+        <div className="min-w-0">
+          <h2 className="text-base sm:text-xl font-bold text-foreground truncate">Pipeline: {job.title}</h2>
+          <p className="text-xs sm:text-sm text-muted-foreground">{job.department} · {job.location}</p>
         </div>
       </div>
 
