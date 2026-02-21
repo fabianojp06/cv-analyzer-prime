@@ -5,9 +5,10 @@ import { Badge } from "@/components/ui/badge";
 interface CandidateCardProps {
   candidate: Candidate;
   onClick: (candidate: Candidate) => void;
+  isDragging?: boolean;
 }
 
-export function CandidateCard({ candidate, onClick }: CandidateCardProps) {
+export function CandidateCard({ candidate, onClick, isDragging }: CandidateCardProps) {
   const initials = candidate.name
     .split(" ")
     .map((n) => n[0])
@@ -17,7 +18,9 @@ export function CandidateCard({ candidate, onClick }: CandidateCardProps) {
   return (
     <button
       onClick={() => onClick(candidate)}
-      className="w-full text-left rounded-xl border border-[hsl(var(--glass-border))] bg-[hsl(var(--glass))] backdrop-blur-md p-4 hover:bg-secondary/60 transition-all duration-200 group cursor-pointer"
+      className={`w-full text-left rounded-xl border border-[hsl(var(--glass-border))] bg-[hsl(var(--glass))] backdrop-blur-md p-4 hover:bg-secondary/60 transition-all duration-200 group cursor-pointer ${
+        isDragging ? "shadow-xl ring-2 ring-primary/40 rotate-[2deg] scale-105" : ""
+      }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
