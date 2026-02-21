@@ -1,50 +1,37 @@
 
 
-# Smart ATS Dashboard - AI Copilot
+# Drag & Drop no Kanban com @hello-pangea/dnd
 
-## Visão Geral
-Um painel de recrutador premium com Dark Mode nativo, focado em visualizar análises de currículos geradas por IA. SPA com design sofisticado, glassmorphism e componentes interativos.
+## Resumo
+Adicionar funcionalidade de arrastar e soltar nos cards do Kanban, permitindo mover candidatos entre colunas (ex: de "Novos" para "Triagem Concluída").
 
-## Design System
-- **Fundo**: Zinc-950/Slate-900 (Dark Mode nativo)
-- **Cor principal**: Indigo-500
-- **Scores semânticos**: Emerald-500 (Alto ≥70), Amber-500 (Médio 40-69), Rose-500 (Baixo <40)
-- **Tipografia**: Inter
-- **Estilo**: Glassmorphism sutil nos cards
+## Mudancas Necessarias
 
-## Dados Mock
-Array de ~8 candidatos fictícios com: id, name, email, phone, role, status (coluna kanban), aiScore (0-100), aiJustification, skills, qualifications e jobHistory.
+### 1. Instalar dependencia
+- `@hello-pangea/dnd` -- fork mantido do react-beautiful-dnd
 
----
+### 2. Index.tsx -- Estado mutavel dos candidatos
+- Trocar de `initialCandidates` (constante importada) para `useState(initialCandidates)` para que o estado dos candidatos seja mutavel
+- Adicionar callback `onStatusChange(candidateId, newStatus)` que atualiza o status do candidato no array
+- Passar essa funcao para o KanbanBoard
+- Recalcular KPIs a partir do estado mutavel
 
-## Seções da Aplicação
+### 3. KanbanBoard.tsx -- Wrapper de DnD
+- Envolver o grid com `<DragDropContext onDragEnd={...}>`
+- Cada coluna vira um `<Droppable droppableId={col.key}>`
+- Cada CandidateCard e envolvido por `<Draggable draggableId={candidate.id}>`
+- No `onDragEnd`, chamar `onStatusChange` com o `destination.droppableId` como novo status
+- Remover o ScrollArea (conflita com droppable) e usar overflow-y-auto nativo
 
-### 1. Header & Topbar
-- Título "Smart ATS - AI Copilot" com ícone Sparkles
-- Barra de pesquisa de candidatos
-- Avatar do recrutador no canto direito
-- 3 cards de resumo rápido: Total de Candidatos, Análises Concluídas, Média de Score
+### 4. CandidateCard.tsx -- Ajustes menores
+- Receber `ref`, `draggableProps` e `dragHandleProps` via render do Draggable
+- Garantir que o click para abrir modal nao dispare durante drag
 
-### 2. Kanban Board (Visão Principal)
-- 4 colunas: "Novos (IA Analisando)", "Triagem Concluída", "Entrevistar", "Descartados"
-- Cada coluna com contador de candidatos
-- Layout responsivo horizontal com scroll
+## Detalhes Tecnicos
 
-### 3. Candidate Card (dentro do Kanban)
-- Estilo glassmorphism (fundo semi-transparente com backdrop-blur)
-- Iniciais do candidato em avatar colorido
-- Nome e vaga aplicada
-- **Ring Progress** circular exibindo o aiScore com cor semântica
-- 2-3 badges de skills principais
-- Clicável para abrir o modal de detalhes
-
-### 4. Candidate Detail Modal
-- **Cabeçalho**: Avatar, nome, email, telefone e Score da IA em destaque com Ring Progress grande
-- **Corpo com 2 abas (Tabs)**:
-  - **Aba "AI Insights"**: aiJustification em card com borda gradiente indigo/brilhante + ícone Sparkles, indicando conteúdo gerado por IA
-  - **Aba "Currículo"**: Qualificações e histórico profissional com tipografia limpa e timeline visual
-- **Rodapé**: Botões "Aprovar para Entrevista" (indigo), "Rejeitar" (rose) e "Baixar PDF" (outline)
-
-### 5. Funcionalidade de Pesquisa
-- Filtro em tempo real dos candidatos por nome ou vaga no Kanban
+- `DragDropContext` fica no KanbanBoard, `onDragEnd` recebe `result` com `source` e `destination`
+- Se `destination` for null ou igual ao source, nao faz nada
+- O Droppable precisa de um elemento filho com `ref` e `droppableProps`
+- O Draggable precisa de um elemento filho com `ref`, `draggableProps` e `dragHandleProps`
+- Toast (sonner) ao mover candidato confirmando a mudanca de status
 
