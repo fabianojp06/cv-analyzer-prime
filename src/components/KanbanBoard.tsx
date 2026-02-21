@@ -40,11 +40,15 @@ export function KanbanBoard({ candidates, onCardClick, onStatusChange }: KanbanB
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+      {/* Mobile/Tablet: horizontal scroll carousel; Desktop: grid */}
+      <div className="flex lg:grid lg:grid-cols-4 gap-4 overflow-x-auto lg:overflow-x-visible snap-x snap-mandatory lg:snap-none pb-4 lg:pb-0 -mx-4 px-4 lg:mx-0 lg:px-0">
         {columns.map((col) => {
           const items = candidates.filter((c) => c.status === col.key);
           return (
-            <div key={col.key} className="flex flex-col rounded-xl border border-border bg-card/50 min-h-[400px]">
+            <div
+              key={col.key}
+              className="flex-shrink-0 w-[85vw] sm:w-[70vw] md:w-[45vw] lg:w-auto snap-center lg:snap-align-none flex flex-col rounded-xl border border-border bg-card/50 min-h-[400px]"
+            >
               <div className="flex items-center gap-2 p-4 border-b border-border">
                 {col.icon}
                 <h3 className="text-sm font-semibold text-foreground">{col.label}</h3>

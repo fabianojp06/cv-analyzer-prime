@@ -17,16 +17,16 @@ const activities = candidates
 
 export function RecentActivity() {
   return (
-    <div className="rounded-xl border border-border bg-card/60 backdrop-blur-sm">
+    <div className="rounded-xl border border-border bg-card/60 backdrop-blur-sm overflow-hidden">
       <div className="flex items-center gap-2 p-4 border-b border-border">
         <BrainCircuit className="h-4 w-4 text-primary" />
         <h3 className="text-sm font-semibold text-foreground">Atividades Recentes da IA</h3>
       </div>
-      <div className="divide-y divide-border">
+      <div className="divide-y divide-border overflow-x-auto">
         {activities.map((a) => (
-          <div key={a.id} className="flex items-center justify-between px-4 py-3">
-            <p className="text-sm text-muted-foreground">{a.text}</p>
-            <span className="text-xs text-muted-foreground whitespace-nowrap ml-4">{a.time}</span>
+          <div key={a.id} className="flex items-start sm:items-center justify-between px-4 py-3 gap-3">
+            <p className="text-xs sm:text-sm text-muted-foreground break-words min-w-0">{a.text}</p>
+            <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">{a.time}</span>
           </div>
         ))}
       </div>

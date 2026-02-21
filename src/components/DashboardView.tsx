@@ -48,12 +48,12 @@ export function DashboardView() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-foreground">Dashboard Global</h2>
-        <p className="text-sm text-muted-foreground">Visão geral do recrutamento</p>
+        <h2 className="text-lg sm:text-xl font-bold text-foreground">Dashboard Global</h2>
+        <p className="text-xs sm:text-sm text-muted-foreground">Visão geral do recrutamento</p>
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {kpis.map((kpi) => (
           <Card key={kpi.label} className="bg-card/60 border-border backdrop-blur-sm">
             <CardContent className="flex items-center gap-4 p-4">
@@ -61,7 +61,7 @@ export function DashboardView() {
                 <kpi.icon className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-foreground">{kpi.value}</p>
+                <p className="text-xl sm:text-2xl font-bold text-foreground">{kpi.value}</p>
                 <p className="text-xs text-muted-foreground">{kpi.label}</p>
               </div>
             </CardContent>
@@ -75,16 +75,20 @@ export function DashboardView() {
         <Card className="bg-card/60 border-border backdrop-blur-sm">
           <CardContent className="p-4">
             <h3 className="text-sm font-semibold text-foreground mb-4">Candidatos por Vaga</h3>
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={barData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "hsl(240 5% 55%)" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: "hsl(240 5% 55%)" }} axisLine={false} tickLine={false} allowDecimals={false} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: "hsl(240 6% 10%)", border: "1px solid hsl(240 4% 16%)", borderRadius: 8, fontSize: 12, color: "hsl(0 0% 95%)" }}
-                />
-                <Bar dataKey="candidatos" fill="hsl(239 84% 67%)" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="overflow-x-auto -mx-4 px-4">
+              <div className="min-w-[320px]">
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={barData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: "hsl(240 5% 55%)" }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: "hsl(240 5% 55%)" }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: "hsl(240 6% 10%)", border: "1px solid hsl(240 4% 16%)", borderRadius: 8, fontSize: 12, color: "hsl(0 0% 95%)" }}
+                    />
+                    <Bar dataKey="candidatos" fill="hsl(239 84% 67%)" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -92,17 +96,21 @@ export function DashboardView() {
         <Card className="bg-card/60 border-border backdrop-blur-sm">
           <CardContent className="p-4">
             <h3 className="text-sm font-semibold text-foreground mb-4">Evolução de Contratações (SLA)</h3>
-            <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={slaData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(240 4% 16%)" />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(240 5% 55%)" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: "hsl(240 5% 55%)" }} axisLine={false} tickLine={false} allowDecimals={false} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: "hsl(240 6% 10%)", border: "1px solid hsl(240 4% 16%)", borderRadius: 8, fontSize: 12, color: "hsl(0 0% 95%)" }}
-                />
-                <Line type="monotone" dataKey="contratações" stroke="hsl(160 84% 39%)" strokeWidth={2} dot={{ fill: "hsl(160 84% 39%)", r: 4 }} />
-              </LineChart>
-            </ResponsiveContainer>
+            <div className="overflow-x-auto -mx-4 px-4">
+              <div className="min-w-[320px]">
+                <ResponsiveContainer width="100%" height={260}>
+                  <LineChart data={slaData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(240 4% 16%)" />
+                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(240 5% 55%)" }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: "hsl(240 5% 55%)" }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: "hsl(240 6% 10%)", border: "1px solid hsl(240 4% 16%)", borderRadius: 8, fontSize: 12, color: "hsl(0 0% 95%)" }}
+                    />
+                    <Line type="monotone" dataKey="contratações" stroke="hsl(160 84% 39%)" strokeWidth={2} dot={{ fill: "hsl(160 84% 39%)", r: 4 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
