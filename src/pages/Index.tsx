@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { candidates as initialCandidates, Candidate } from "@/data/candidates";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import { CandidateModal } from "@/components/CandidateModal";
@@ -9,21 +9,28 @@ import { Sparkles, Search, Users, BrainCircuit, TrendingUp } from "lucide-react"
 
 const Index = () => {
   const [search, setSearch] = useState("");
+  const [candidates, setCandidates] = useState<Candidate[]>(initialCandidates);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
 
+  const handleStatusChange = useCallback((candidateId: string, newStatus: Candidate["status"]) => {
+    setCandidates((prev) =>
+      prev.map((c) => (c.id === candidateId ? { ...c, status: newStatus } : c))
+    );
+  }, []);
+
   const filtered = useMemo(() => {
-    if (!search.trim()) return initialCandidates;
+    if (!search.trim()) return candidates;
     const q = search.toLowerCase();
-    return initialCandidates.filter(
+    return candidates.filter(
       (c) => c.name.toLowerCase().includes(q) || c.role.toLowerCase().includes(q)
     );
-  }, [search]);
+  }, [search, candidates]);
 
-  const analysisComplete = initialCandidates.filter((c) => c.status !== "new").length;
-  const avgScore = Math.round(initialCandidates.reduce((a, c) => a + c.aiScore, 0) / initialCandidates.length);
+  const analysisComplete = candidates.filter((c) => c.status !== "new").length;
+  const avgScore = Math.round(candidates.reduce((a, c) => a + c.aiScore, 0) / candidates.length);
 
   const kpis = [
-    { label: "Total Candidatos", value: initialCandidates.length, icon: Users, color: "text-primary" },
+    { label: "Total Candidatos", value: candidates.length, icon: Users, color: "text-primary" },
     { label: "Análises Concluídas", value: analysisComplete, icon: BrainCircuit, color: "text-score-high" },
     { label: "Média de Score", value: `${avgScore}%`, icon: TrendingUp, color: "text-score-medium" },
   ];
@@ -75,7 +82,7 @@ const Index = () => {
         </div>
 
         {/* Kanban */}
-        <KanbanBoard candidates={filtered} onCardClick={setSelectedCandidate} />
+        <KanbanBoard candidates={filtered} onCardClick={setSelectedCandidate} onStatusChange={handleStatusChange} />
       </main>
 
       {/* Modal */}
