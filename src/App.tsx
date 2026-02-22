@@ -9,6 +9,7 @@ import { DashboardView } from "./components/DashboardView";
 import { JobsView } from "./components/JobsView";
 import { PipelineView } from "./components/PipelineView";
 import { SettingsView } from "./components/SettingsView";
+import { ResumeUploadView } from "./components/ResumeUploadView";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ const App = () => (
             <Route index element={<DashboardView />} />
             <Route path="jobs" element={<JobsView />} />
             <Route path="jobs/:jobId" element={<PipelineView />} />
+            <Route path="upload" element={<ResumeUploadView />} />
             <Route path="settings" element={<SettingsView />} />
           </Route>
           <Route path="*" element={<NotFound />} />
