@@ -175,18 +175,7 @@ export function PipelineView() {
         />
       </div>
 
-      {candidates.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
-          <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-            <Users className="h-6 w-6 text-muted-foreground" />
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Ainda não há candidatos triados para esta vaga.
-          </p>
-        </div>
-      ) : (
-        <KanbanBoard candidates={filtered} onCardClick={setSelectedCandidate} onStatusChange={handleStatusChange} />
-      )}
+      <KanbanBoard candidates={filtered} onCardClick={setSelectedCandidate} onStatusChange={handleStatusChange} />
 
       <CandidateModal
         candidate={selectedCandidate}
