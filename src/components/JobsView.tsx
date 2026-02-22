@@ -1,16 +1,52 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { jobs } from "@/data/jobs";
-import { candidates } from "@/data/candidates";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Users, Sparkles, MapPin, Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Loader2 } from "lucide-react";
 import { NewJobModal } from "@/components/NewJobModal";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+const API_URL = "https://nonabortively-aciniform-jacoby.ngrok-free.dev/webhook/listar-vagas";
+
+interface Vaga {
+  titulo: string;
+  descricao: string;
+  requisitos: string;
+  status: string;
+}
 
 export function JobsView() {
-  const navigate = useNavigate();
   const [modalOpen, setModalOpen] = useState(false);
+  const [vagas, setVagas] = useState<Vaga[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchVagas = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(API_URL);
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setVagas(Array.isArray(data) ? data : []);
+    } catch {
+      setVagas([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchVagas();
+  }, [fetchVagas]);
+
+  const handleJobCreated = () => {
+    fetchVagas();
+  };
 
   return (
     <div className="space-y-6">
@@ -25,63 +61,46 @@ export function JobsView() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {jobs.map((job) => {
-          const jobCandidates = candidates.filter((c) => c.jobId === job.id);
-          const newCount = jobCandidates.filter((c) => c.status === "new").length;
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : vagas.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground text-sm">
+          Nenhuma vaga cadastrada ainda.
+        </div>
+      ) : (
+        <div className="rounded-lg border border-border bg-card/60 backdrop-blur-sm overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Título da Vaga</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Descrição</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {vagas.map((vaga, i) => (
+                <TableRow key={i}>
+                  <TableCell className="font-medium text-foreground">
+                    {vaga.titulo}
+                  </TableCell>
+                  <TableCell>
+                    <Badge className="bg-[hsl(var(--score-high))]/15 text-[hsl(var(--score-high))] border-0 text-[10px]">
+                      {vaga.status === "aberta" ? "Aberta" : vaga.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm max-w-xs truncate">
+                    {vaga.descricao?.slice(0, 100)}{vaga.descricao?.length > 100 ? "…" : ""}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
-          return (
-            <Card
-              key={job.id}
-              className="bg-card/60 border-border backdrop-blur-sm hover:border-primary/30 transition-colors group"
-            >
-              <CardContent className="p-5 flex flex-col gap-4">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
-                      {job.title}
-                    </h3>
-                    <p className="text-xs text-muted-foreground">{job.department}</p>
-                  </div>
-                  <Badge className="bg-[hsl(var(--score-high))]/15 text-[hsl(var(--score-high))] border-0 text-[10px]">
-                    Aberta
-                  </Badge>
-                </div>
-
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <MapPin className="h-3 w-3" />
-                  {job.location}
-                </div>
-
-                <div className="flex items-center gap-4 text-xs">
-                  <span className="flex items-center gap-1 text-muted-foreground">
-                    <Users className="h-3.5 w-3.5" />
-                    {jobCandidates.length} Candidatos
-                  </span>
-                  {newCount > 0 && (
-                    <span className="flex items-center gap-1 text-primary">
-                      <Sparkles className="h-3.5 w-3.5" />
-                      {newCount} Novos
-                    </span>
-                  )}
-                </div>
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-between text-xs text-muted-foreground hover:text-primary mt-auto"
-                  onClick={() => navigate(`/jobs/${job.id}`)}
-                >
-                  Ver Pipeline
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Button>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      <NewJobModal open={modalOpen} onOpenChange={setModalOpen} />
+      <NewJobModal open={modalOpen} onOpenChange={setModalOpen} onSuccess={handleJobCreated} />
     </div>
   );
 }
