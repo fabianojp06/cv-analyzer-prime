@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-const API_URL = "https://shortly-peaceful-baboon.ngrok-free.app/webhook/buscar-talentos";
+const API_URL = "https://nonabortively-aciniform-jacoby.ngrok-free.dev/webhook/buscar-talentos";
 
 interface TalentResult {
   nome: string;
