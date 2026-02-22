@@ -5,8 +5,8 @@ import { candidates } from "@/data/candidates";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Users, Sparkles, MapPin, ExternalLink } from "lucide-react";
-import { JobsModal } from "@/components/JobsModal";
+import { ArrowRight, Users, Sparkles, MapPin, Plus } from "lucide-react";
+import { NewJobModal } from "@/components/NewJobModal";
 
 export function JobsView() {
   const navigate = useNavigate();
@@ -20,8 +20,8 @@ export function JobsView() {
           <p className="text-sm text-muted-foreground">Gerencie suas posições abertas</p>
         </div>
         <Button onClick={() => setModalOpen(true)} className="gap-1.5">
-          <ExternalLink className="h-4 w-4" />
-          Vagas Abertas
+          <Plus className="h-4 w-4" />
+          Cadastrar Nova Vaga
         </Button>
       </div>
 
@@ -81,7 +81,7 @@ export function JobsView() {
         })}
       </div>
 
-      <JobsModal open={modalOpen} onOpenChange={setModalOpen} />
+      <NewJobModal open={modalOpen} onOpenChange={setModalOpen} />
     </div>
   );
 }
