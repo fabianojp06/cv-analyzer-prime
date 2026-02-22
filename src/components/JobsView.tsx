@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, Eye } from "lucide-react";
 import { NewJobModal } from "@/components/NewJobModal";
 import {
   Table,
@@ -15,6 +16,7 @@ import {
 const API_URL = "https://nonabortively-aciniform-jacoby.ngrok-free.dev/webhook/listar-vagas";
 
 interface Vaga {
+  id?: string;
   titulo: string;
   descricao: string;
   requisitos: string;
@@ -22,6 +24,7 @@ interface Vaga {
 }
 
 export function JobsView() {
+  const navigate = useNavigate();
   const [modalOpen, setModalOpen] = useState(false);
   const [vagas, setVagas] = useState<Vaga[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,11 +82,12 @@ export function JobsView() {
                 <TableHead>Título da Vaga</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Descrição</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {vagas.map((vaga, i) => (
-                <TableRow key={i}>
+                <TableRow key={vaga.id || i}>
                   <TableCell className="font-medium text-foreground">
                     {vaga.titulo}
                   </TableCell>
@@ -94,6 +98,17 @@ export function JobsView() {
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm max-w-xs truncate">
                     {vaga.descricao?.slice(0, 100)}{vaga.descricao?.length > 100 ? "…" : ""}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="gap-1.5 text-xs text-primary hover:text-primary"
+                      onClick={() => navigate(`/jobs/${vaga.id || encodeURIComponent(vaga.titulo)}`)}
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      Ver Pipeline
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}

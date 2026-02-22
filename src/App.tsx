@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import Carreiras from "./pages/Carreiras";
 import { DashboardView } from "./components/DashboardView";
 import { JobsView } from "./components/JobsView";
 import { PipelineView } from "./components/PipelineView";
@@ -20,6 +21,10 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          {/* Public */}
+          <Route path="/carreiras" element={<Carreiras />} />
+
+          {/* RH (internal) */}
           <Route path="/" element={<Index />}>
             <Route index element={<DashboardView />} />
             <Route path="jobs" element={<JobsView />} />
