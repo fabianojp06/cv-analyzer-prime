@@ -11,6 +11,7 @@ import { JobsView } from "./components/JobsView";
 import { PipelineView } from "./components/PipelineView";
 import { SettingsView } from "./components/SettingsView";
 import { ResumeUploadView } from "./components/ResumeUploadView";
+import { TalentSearchView } from "./components/TalentSearchView";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="jobs" element={<JobsView />} />
             <Route path="jobs/:jobId" element={<PipelineView />} />
             <Route path="upload" element={<ResumeUploadView />} />
+            <Route path="talent-search" element={<TalentSearchView />} />
             <Route path="settings" element={<SettingsView />} />
           </Route>
           <Route path="*" element={<NotFound />} />
