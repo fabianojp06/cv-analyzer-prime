@@ -262,6 +262,3 @@ Este projeto é privado e de uso interno.
 
 ---
 
-<p align="center">
-  Feito com ❤️ usando <a href="https://lovable.dev">Lovable</a>
-</p>
