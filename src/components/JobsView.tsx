@@ -1,19 +1,28 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { jobs } from "@/data/jobs";
 import { candidates } from "@/data/candidates";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Users, Sparkles, MapPin } from "lucide-react";
+import { ArrowRight, Users, Sparkles, MapPin, ExternalLink } from "lucide-react";
+import { JobsModal } from "@/components/JobsModal";
 
 export function JobsView() {
   const navigate = useNavigate();
+  const [modalOpen, setModalOpen] = useState(false);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-foreground">Vagas Ativas</h2>
-        <p className="text-sm text-muted-foreground">Gerencie suas posições abertas</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-foreground">Vagas Ativas</h2>
+          <p className="text-sm text-muted-foreground">Gerencie suas posições abertas</p>
+        </div>
+        <Button onClick={() => setModalOpen(true)} className="gap-1.5">
+          <ExternalLink className="h-4 w-4" />
+          Vagas Abertas
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -71,6 +80,8 @@ export function JobsView() {
           );
         })}
       </div>
+
+      <JobsModal open={modalOpen} onOpenChange={setModalOpen} />
     </div>
   );
 }
