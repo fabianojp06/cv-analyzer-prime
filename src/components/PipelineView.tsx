@@ -76,10 +76,15 @@ export function PipelineView() {
           jobId: String(c.jobId ?? c.vaga_id ?? jobId),
           status: mapStatus(c.fase ?? c.status),
           aiScore: Number(c.score_aderencia ?? c.aiScore ?? c.score ?? c.nota ?? 0),
-          aiJustification: c.aiJustification ?? c.justificativa ?? "",
+          aiJustification: c.aiJustification ?? c.justificativa ?? c.resumo_ia ?? "",
           skills: Array.isArray(c.skills) ? c.skills : (c.habilidades ? c.habilidades.split(",").map((s: string) => s.trim()) : []),
           qualifications: Array.isArray(c.qualifications) ? c.qualifications : [],
           jobHistory: Array.isArray(c.jobHistory) ? c.jobHistory : [],
+          resumoIa: c.resumo_ia ?? c.resumoIa ?? "",
+          pontosFortes: Array.isArray(c.pontos_fortes) ? c.pontos_fortes : (typeof c.pontos_fortes === "string" ? c.pontos_fortes.split(",").map((s: string) => s.trim()) : []),
+          pontosFracos: Array.isArray(c.pontos_fracos) ? c.pontos_fracos : (typeof c.pontos_fracos === "string" ? c.pontos_fracos.split(",").map((s: string) => s.trim()) : []),
+          textoExtraido: c.texto_extraido ?? c.textoExtraido ?? "",
+          urlPdf: c.url_pdf ?? c.urlPdf ?? "",
         }));
         setCandidates(mapped);
       })

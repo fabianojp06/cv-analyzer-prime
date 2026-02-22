@@ -17,6 +17,11 @@ export interface Candidate {
   skills: string[];
   qualifications: string[];
   jobHistory: JobHistory[];
+  resumoIa: string;
+  pontosFortes: string[];
+  pontosFracos: string[];
+  textoExtraido: string;
+  urlPdf: string;
 }
 
 export const candidates: Candidate[] = [];
