@@ -74,8 +74,8 @@ export function PipelineView() {
           phone: c.phone ?? c.telefone ?? "",
           role: c.role ?? c.cargo ?? "",
           jobId: String(c.jobId ?? c.vaga_id ?? jobId),
-          status: mapStatus(c.status),
-          aiScore: Number(c.aiScore ?? c.score ?? c.nota ?? 0),
+          status: mapStatus(c.fase ?? c.status),
+          aiScore: Number(c.score_aderencia ?? c.aiScore ?? c.score ?? c.nota ?? 0),
           aiJustification: c.aiJustification ?? c.justificativa ?? "",
           skills: Array.isArray(c.skills) ? c.skills : (c.habilidades ? c.habilidades.split(",").map((s: string) => s.trim()) : []),
           qualifications: Array.isArray(c.qualifications) ? c.qualifications : [],
@@ -190,8 +190,8 @@ export function PipelineView() {
 function mapStatus(status: string | undefined): Candidate["status"] {
   if (!status) return "new";
   const s = status.toLowerCase().trim();
-  if (s === "screened" || s === "triagem" || s === "triagem concluída" || s === "triado") return "screened";
+  if (s === "screened" || s === "triagem" || s === "triagem concluída" || s === "triagem concluida" || s === "triado") return "screened";
   if (s === "interview" || s === "entrevista" || s === "entrevistar") return "interview";
-  if (s === "rejected" || s === "rejeitado" || s === "descartado" || s === "recusado") return "rejected";
+  if (s === "rejected" || s === "rejeitado" || s === "descartado" || s === "descartados" || s === "recusado") return "rejected";
   return "new";
 }
