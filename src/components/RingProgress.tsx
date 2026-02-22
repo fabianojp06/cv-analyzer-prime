@@ -10,13 +10,13 @@ interface RingProgressProps {
 
 export function getScoreColor(score: number) {
   if (score >= 70) return "text-score-high";
-  if (score >= 40) return "text-score-medium";
+  if (score >= 50) return "text-score-medium";
   return "text-score-low";
 }
 
 export function getScoreStroke(score: number) {
   if (score >= 70) return "hsl(160, 84%, 39%)";
-  if (score >= 40) return "hsl(38, 92%, 50%)";
+  if (score >= 50) return "hsl(38, 92%, 50%)";
   return "hsl(347, 77%, 50%)";
 }
 
