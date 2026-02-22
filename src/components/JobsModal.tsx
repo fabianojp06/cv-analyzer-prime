@@ -16,7 +16,7 @@ interface Vaga {
   descricao: string;
 }
 
-const API_URL = "http://localhost:5678/webhook-test/listar-vagas";
+const API_URL = "https://nonabortively-aciniform-jacoby.ngrok-free.dev/webhook-test/listar-vagas";
 
 interface JobsModalProps {
   open: boolean;
