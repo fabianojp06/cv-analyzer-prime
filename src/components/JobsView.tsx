@@ -29,7 +29,9 @@ export function JobsView() {
   const fetchVagas = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(API_URL);
+      const res = await fetch(API_URL, {
+        headers: { "ngrok-skip-browser-warning": "true" },
+      });
       if (!res.ok) throw new Error();
       const data = await res.json();
       setVagas(Array.isArray(data) ? data : []);
