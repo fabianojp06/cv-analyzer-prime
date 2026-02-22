@@ -1,4 +1,4 @@
-import { Sparkles, LayoutDashboard, Briefcase, Settings, Upload, Globe } from "lucide-react";
+import { Sparkles, LayoutDashboard, Briefcase, Settings, Upload, Globe, SearchCheck } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -17,6 +17,7 @@ const menuItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Vagas Ativas", url: "/jobs", icon: Briefcase },
   { title: "Enviar CV", url: "/upload", icon: Upload },
+  { title: "Busca de Talentos", url: "/talent-search", icon: SearchCheck },
   { title: "Configurações", url: "/settings", icon: Settings },
 ];
 
