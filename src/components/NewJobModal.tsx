@@ -18,9 +18,10 @@ const API_URL = "https://nonabortively-aciniform-jacoby.ngrok-free.dev/webhook/c
 interface NewJobModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
-export function NewJobModal({ open, onOpenChange }: NewJobModalProps) {
+export function NewJobModal({ open, onOpenChange, onSuccess }: NewJobModalProps) {
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
   const [requisitos, setRequisitos] = useState("");
@@ -41,6 +42,7 @@ export function NewJobModal({ open, onOpenChange }: NewJobModalProps) {
       setDescricao("");
       setRequisitos("");
       onOpenChange(false);
+      onSuccess?.();
     } catch {
       toast.error("Erro ao cadastrar a vaga. Tente novamente.");
     } finally {
