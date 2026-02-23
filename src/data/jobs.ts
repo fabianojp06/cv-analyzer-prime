@@ -6,3 +6,5 @@ export interface Job {
   status: string;
   descricao?: string; // <-- O novo campo adicionado para receber o texto completo da vaga
 }
+
+export const jobs: Job[] = [];

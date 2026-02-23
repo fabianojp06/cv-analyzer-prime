@@ -28,7 +28,7 @@ const slaData = [
 export function DashboardView() {
   const barData = useMemo(() => {
     return jobs.map((job) => ({
-      name: job.title.length > 18 ? job.title.slice(0, 18) + "…" : job.title,
+      name: job.titulo.length > 18 ? job.titulo.slice(0, 18) + "…" : job.titulo,
       candidatos: candidates.filter((c) => c.jobId === job.id).length,
     }));
   }, []);
