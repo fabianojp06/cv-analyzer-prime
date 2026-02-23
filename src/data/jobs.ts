@@ -1,10 +1,8 @@
 export interface Job {
   id: string;
-  title: string;
-  department: string;
-  location: string;
-  status: "open" | "closed" | "paused";
-  createdAt: string;
+  titulo: string;
+  departamento: string;
+  localizacao: string;
+  status: string;
+  descricao?: string; // <-- O novo campo adicionado para receber o texto completo da vaga
 }
-
-export const jobs: Job[] = [];
