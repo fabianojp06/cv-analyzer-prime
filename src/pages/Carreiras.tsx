@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
-// Verifique se o caminho da importação de Job e ResumeUploadForm batem com o seu projeto
-import { Job } from "@/data/jobs";
-import { ResumeUploadForm } from "../components/ResumeUploadForm"; // ou "@/components/ResumeUploadForm"
+import { ResumeUploadForm } from "@/components/ResumeUploadForm";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,21 +15,30 @@ import { Badge } from "@/components/ui/badge";
 import { MapPin, Building } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+// 1. Tipagem exata em Português (Combinando com o seu n8n)
+interface Vaga {
+  id?: string;
+  titulo: string;
+  descricao?: string;
+  requisitos?: string;
+  status: string;
+  localizacao?: string;
+  departamento?: string;
+}
+
 export default function Carreiras() {
-  const [vagas, setVagas] = useState<Job[]>([]);
+  const [vagas, setVagas] = useState<Vaga[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 1. ESTADOS DE CONTROLE DOS MODAIS
-  const [vagaDetalhes, setVagaDetalhes] = useState<Job | null>(null); // NOVO: Controla o modal de visualização de texto
-  const [selectedVagaId, setSelectedVagaId] = useState<string | null>(null); // MANTIDO: Controla o formulário de PDF
+  // ESTADOS DE CONTROLE DOS MODAIS
+  const [vagaDetalhes, setVagaDetalhes] = useState<Vaga | null>(null);
+  const [selectedVagaId, setSelectedVagaId] = useState<string | null>(null);
 
   const { toast } = useToast();
 
   useEffect(() => {
-    // 2. BUSCA AS VAGAS NO SEU N8N
     const fetchVagas = async () => {
       try {
-        // Lembre-se de garantir que esta URL aponta para o seu n8n/ngrok
         const response = await fetch("https://nonabortively-aciniform-jacoby.ngrok-free.dev/webhook/listar-vagas", {
           headers: { "ngrok-skip-browser-warning": "true" },
         });
@@ -72,17 +79,16 @@ export default function Carreiras() {
             <Card key={vaga.id} className="flex flex-col h-full hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex justify-between items-start mb-2">
-                  <Badge variant="secondary">{vaga.departamento}</Badge>
+                  <Badge variant="secondary">{vaga.departamento || "Geral"}</Badge>
                   {vaga.status === "aberta" && <Badge className="bg-green-600 hover:bg-green-700">Ativa</Badge>}
                 </div>
                 <CardTitle className="text-xl">{vaga.titulo}</CardTitle>
                 <CardDescription className="flex items-center gap-1 mt-2">
-                  <MapPin className="h-4 w-4" /> {vaga.localizacao}
+                  <MapPin className="h-4 w-4" /> {vaga.localizacao || "Remoto"}
                 </CardDescription>
               </CardHeader>
 
               <CardContent className="flex-grow">
-                {/* Um pequeno preview da descrição para instigar o candidato */}
                 <p className="text-sm text-muted-foreground line-clamp-3">
                   {vaga.descricao
                     ? vaga.descricao
@@ -91,7 +97,6 @@ export default function Carreiras() {
               </CardContent>
 
               <CardFooter>
-                {/* 3. BOTÃO ALTERADO PARA ABRIR O NOVO MODAL */}
                 <Button className="w-full" onClick={() => setVagaDetalhes(vaga)}>
                   Ver Detalhes
                 </Button>
@@ -101,22 +106,21 @@ export default function Carreiras() {
         </div>
       )}
 
-      {/* 4. O NOVO MODAL DE DETALHES DA VAGA */}
+      {/* MODAL DE DETALHES DA VAGA */}
       <Dialog open={!!vagaDetalhes} onOpenChange={(open) => !open && setVagaDetalhes(null)}>
         <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="text-2xl">{vagaDetalhes?.titulo}</DialogTitle>
             <DialogDescription className="flex gap-4 text-md mt-3 items-center">
               <Badge variant="secondary" className="flex items-center gap-1 text-sm px-3 py-1">
-                <Building className="w-4 h-4" /> {vagaDetalhes?.departamento}
+                <Building className="w-4 h-4" /> {vagaDetalhes?.departamento || "Geral"}
               </Badge>
               <Badge variant="outline" className="flex items-center gap-1 text-sm px-3 py-1">
-                <MapPin className="w-4 h-4" /> {vagaDetalhes?.localizacao}
+                <MapPin className="w-4 h-4" /> {vagaDetalhes?.localizacao || "Remoto"}
               </Badge>
             </DialogDescription>
           </DialogHeader>
 
-          {/* O segredo do whitespace-pre-wrap para manter parágrafos originais do banco */}
           <div className="mt-4 flex-1 overflow-y-auto pr-2">
             <div className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">
               {vagaDetalhes?.descricao || "Descrição detalhada não informada para esta vaga."}
@@ -129,7 +133,6 @@ export default function Carreiras() {
             </Button>
             <Button
               onClick={() => {
-                // A mágica acontece aqui: Abre o formulário de currículo e fecha este modal
                 setSelectedVagaId(vagaDetalhes?.id || null);
                 setVagaDetalhes(null);
               }}
@@ -140,15 +143,15 @@ export default function Carreiras() {
         </DialogContent>
       </Dialog>
 
-      {/* 5. MODAL ORIGINAL DE ENVIO DE CURRÍCULO (FORMULÁRIO) */}
+      {/* MODAL DE ENVIO DE CURRÍCULO */}
       <Dialog open={!!selectedVagaId} onOpenChange={(open) => !open && setSelectedVagaId(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Envie seu Currículo</DialogTitle>
             <DialogDescription>Preencha os dados abaixo e anexe seu currículo em PDF.</DialogDescription>
           </DialogHeader>
-
-          {selectedVagaId && <ResumeUploadForm vagaId={selectedVagaId} onSuccess={() => setSelectedVagaId(null)} />}
+          {/* Removido o onSuccess que não existia no componente original */}
+          {selectedVagaId && <ResumeUploadForm vagaId={selectedVagaId} />}
         </DialogContent>
       </Dialog>
     </div>
