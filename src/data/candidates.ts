@@ -1,32 +1,19 @@
-export interface JobHistory {
-  company: string;
-  role: string;
-  period: string;
-}
-
 export interface Candidate {
   id: string;
   name: string;
+  role: string;
   email: string;
   phone: string;
-  role: string;
-  jobId: string;
-  status: "new" | "screened" | "interview" | "rejected";
+  status: string;
   aiScore: number;
   aiJustification: string;
-  skills: string[];
-  qualifications: string[];
-  jobHistory: JobHistory[];
-  resumoIa: string;
+  resumoIa?: string;
   pontosFortes: string[];
   pontosFracos: string[];
-  textoExtraido: string;
-  urlPdf: string;
+  textoExtraido?: string;
+  urlPdf?: string;
+  perguntas_entrevista?: string; // <-- A nossa nova gaveta aqui!
 }
 
-export interface Candidate {
-  id: string;
-  name: string;
-  // ... outras propriedades ...
-  perguntas_entrevista?: string; // <-- ADICIONE ESTA LINHA
-}
+// Esta é a linha que havia sido apagada sem querer e que faz o Dashboard funcionar:
+export const candidates: Candidate[] = [];
