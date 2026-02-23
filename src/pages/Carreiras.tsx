@@ -242,4 +242,132 @@ export default function Carreiras() {
             <DialogTitle className="text-2xl">{vagaDetalhes?.titulo}</DialogTitle>
             <DialogDescription className="flex gap-4 text-md mt-3 items-center">
               <Badge variant="secondary" className="flex items-center gap-1 text-sm px-3 py-1">
-                <Building className="w-4 h-4" /> {vagaDetalhes?.depart
+                <Building className="w-4 h-4" /> {vagaDetalhes?.departamento || "Geral"}
+              </Badge>
+              <Badge variant="outline" className="flex items-center gap-1 text-sm px-3 py-1">
+                <MapPin className="w-4 h-4" /> {vagaDetalhes?.localizacao || "Remoto"}
+              </Badge>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="overflow-y-auto flex-grow pr-2 space-y-6 py-4">
+            {vagaDetalhes?.descricao && (
+              <div>
+                <h3 className="font-semibold text-lg mb-2">Descrição</h3>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{vagaDetalhes.descricao}</p>
+              </div>
+            )}
+            {vagaDetalhes?.requisitos && (
+              <div>
+                <h3 className="font-semibold text-lg mb-2">Requisitos</h3>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{vagaDetalhes.requisitos}</p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2 pt-4 border-t">
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => {
+                setIsAnaliseOpen(true);
+              }}
+            >
+              <Star className="w-4 h-4 mr-2" /> Análise Prévia do CV
+            </Button>
+            <Button
+              className="w-full sm:w-auto"
+              onClick={() => {
+                setSelectedVagaId(vagaDetalhes?.id || null);
+                setVagaDetalhes(null);
+              }}
+            >
+              <UploadCloud className="w-4 h-4 mr-2" /> Enviar Candidatura
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL DE ANÁLISE PRÉVIA */}
+      <Dialog open={isAnaliseOpen} onOpenChange={(open) => !open && resetAnaliseModal()}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Análise Prévia do Currículo</DialogTitle>
+            <DialogDescription>
+              Envie seu CV para descobrir sua compatibilidade com a vaga antes de se candidatar.
+            </DialogDescription>
+          </DialogHeader>
+
+          {!analiseResult ? (
+            <div className="space-y-4 py-4">
+              <Input
+                type="file"
+                accept=".pdf"
+                onChange={(e) => setAnaliseFile(e.target.files?.[0] || null)}
+              />
+              <Button onClick={handleAnaliseSubmit} disabled={isAnalyzing || !analiseFile} className="w-full">
+                {isAnalyzing ? (
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Analisando com IA...
+                  </div>
+                ) : (
+                  "Analisar Compatibilidade"
+                )}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4 py-4">
+              <div className="flex items-center justify-center">
+                <div
+                  className="w-20 h-20 rounded-full border-4 flex items-center justify-center text-2xl font-bold"
+                  style={{
+                    borderColor: analiseResult.score >= 70 ? '#22c55e' : analiseResult.score >= 40 ? '#eab308' : '#ef4444',
+                    color: analiseResult.score >= 70 ? '#22c55e' : analiseResult.score >= 40 ? '#eab308' : '#ef4444',
+                  }}
+                >
+                  {analiseResult.score}%
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-semibold flex items-center gap-1 mb-1">
+                  <Star className="w-4 h-4 text-yellow-500" /> Pontos Fortes
+                </h4>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{analiseResult.pontos_fortes}</p>
+              </div>
+
+              <div>
+                <h4 className="font-semibold flex items-center gap-1 mb-1">
+                  <AlertTriangle className="w-4 h-4 text-orange-500" /> O que Falta
+                </h4>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{analiseResult.o_que_falta}</p>
+              </div>
+
+              <Button variant="outline" onClick={resetAnaliseModal} className="w-full">
+                Fechar
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL DE CANDIDATURA */}
+      <Dialog open={!!selectedVagaId} onOpenChange={(open) => !open && setSelectedVagaId(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Enviar Candidatura</DialogTitle>
+            <DialogDescription>Anexe seu currículo em PDF para se candidatar a esta vaga.</DialogDescription>
+          </DialogHeader>
+          <ResumeUploadForm
+            vagaId={selectedVagaId || undefined}
+            onSuccess={() => {
+              setSelectedVagaId(null);
+              toast({ title: "Sucesso!", description: "Candidatura enviada com sucesso." });
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
