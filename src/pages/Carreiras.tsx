@@ -122,7 +122,7 @@ export default function Carreiras() {
           </DialogHeader>
 
           <div className="mt-4 flex-1 overflow-y-auto pr-2">
-            <div className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">
+            <div className="text-sm text-white whitespace-pre-wrap leading-relaxed">
               {vagaDetalhes?.descricao || "Descrição detalhada não informada para esta vaga."}
             </div>
           </div>
