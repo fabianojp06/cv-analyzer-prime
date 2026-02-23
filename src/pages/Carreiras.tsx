@@ -88,6 +88,7 @@ export default function Carreiras() {
   });
 
   // Função que envia o CV para a IA do n8n com Leitura Bruta Reforçada
+  // Função que envia o CV para a IA do n8n com Leitura Bruta Reforçada
   const handleAnaliseSubmit = async () => {
     if (!analiseFile || !vagaDetalhes) {
       toast({ title: "Atenção", description: "Selecione um currículo em PDF.", variant: "destructive" });
@@ -109,20 +110,33 @@ export default function Carreiras() {
 
       if (!response.ok) throw new Error("Falha na análise. Status: " + response.status);
 
-      // 1. Pega a resposta bruta como texto (isso nunca falha de primeira)
       const rawText = await response.text();
       console.log("RESPOSTA BRUTA DO N8N:", rawText);
 
       let data;
       try {
-        // 2. Tenta transformar o texto recebido em objeto
+        // 1. Conforma o texto num objeto genérico
         data = JSON.parse(rawText);
 
-        // 3. Desempacota se a IA escondeu a resposta real dentro de 'text' ou 'message.content'
-        if (data.text) {
-          data = JSON.parse(data.text);
-        } else if (data.message && data.message.content) {
-          data = JSON.parse(data.message.content);
+        let stringJsonEscondida = null;
+
+        // 2. Procura ONDE a OpenAI escondeu a resposta dentro do objeto do n8n
+        if (data.content && Array.isArray(data.content) && data.content[0]?.text) {
+          // AQUI ESTAVA O SEGREDO! É assim que o seu n8n está a enviar: content[0].text
+          stringJsonEscondida = data.content[0].text;
+        } else if (data.text) {
+          stringJsonEscondida = data.text;
+        } else if (data.message?.content) {
+          stringJsonEscondida = data.message.content;
+        }
+
+        // 3. Se achou a string escondida, limpa qualquer sujeira (como crases do markdown) e converte
+        if (stringJsonEscondida) {
+          const textoLimpo = stringJsonEscondida
+            .replace(/```json/g, "")
+            .replace(/```/g, "")
+            .trim();
+          data = JSON.parse(textoLimpo);
         }
       } catch (parseError) {
         console.error("Falha ao processar o JSON da IA:", parseError);
@@ -130,6 +144,7 @@ export default function Carreiras() {
         throw new Error("Formato de resposta inválido");
       }
 
+      // 4. Agora sim, o data tem { score, pontos_fortes, o_que_falta } na raiz!
       setAnaliseResult(data);
     } catch (error) {
       console.error(error);
