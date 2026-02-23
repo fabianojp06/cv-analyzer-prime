@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Building, Search } from "lucide-react";
+import { MapPin, Building, Search, UploadCloud, Star, AlertTriangle, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 // Tipagem exata em Português
@@ -27,16 +27,29 @@ interface Vaga {
   departamento?: string;
 }
 
+// NOVO: Tipagem da resposta da IA
+interface AnaliseResult {
+  score: number;
+  pontos_fortes: string;
+  o_que_falta: string;
+}
+
 export default function Carreiras() {
   const [vagas, setVagas] = useState<Vaga[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // NOVO: Estado para controlar o texto da busca
+  // Estado para controlar o texto da busca
   const [busca, setBusca] = useState("");
 
-  // ESTADOS DE CONTROLE DOS MODAIS
+  // ESTADOS DE CONTROLE DOS MODAIS ORIGINAIS
   const [vagaDetalhes, setVagaDetalhes] = useState<Vaga | null>(null);
   const [selectedVagaId, setSelectedVagaId] = useState<string | null>(null);
+
+  // NOVO: ESTADOS PARA A ANÁLISE PRÉVIA (TEST DRIVE)
+  const [isAnaliseOpen, setIsAnaliseOpen] = useState(false);
+  const [analiseFile, setAnaliseFile] = useState<File | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analiseResult, setAnaliseResult] = useState<AnaliseResult | null>(null);
 
   const { toast } = useToast();
 
@@ -64,7 +77,6 @@ export default function Carreiras() {
     fetchVagas();
   }, [toast]);
 
-  // NOVO: Lógica de filtro em tempo real
   const vagasFiltradas = vagas.filter((vaga) => {
     const termo = busca.toLowerCase();
     return (
@@ -75,13 +87,56 @@ export default function Carreiras() {
     );
   });
 
+  // NOVO: Função que envia o CV para a IA do n8n
+  const handleAnaliseSubmit = async () => {
+    if (!analiseFile || !vagaDetalhes) {
+      toast({ title: "Atenção", description: "Selecione um currículo em PDF.", variant: "destructive" });
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setAnaliseResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", analiseFile);
+      // Enviamos a descrição da vaga para a IA ter o contexto do que cobrar
+      formData.append("descricao_vaga", vagaDetalhes.descricao || "");
+
+      const response = await fetch("http://localhost:5678/webhook/analise-previa-cv", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error("Falha na análise");
+      const data = await response.json();
+      setAnaliseResult(data);
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Erro na Análise",
+        description: "A IA não conseguiu ler o seu currículo. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  // Função para limpar o estado ao fechar o modal de Análise
+  const resetAnaliseModal = () => {
+    setIsAnaliseOpen(false);
+    setAnaliseFile(null);
+    setAnaliseResult(null);
+    setIsAnalyzing(false);
+  };
+
   return (
     <div className="container mx-auto py-10 px-4 max-w-5xl">
       <div className="mb-8 text-center">
         <h1 className="text-4xl font-bold tracking-tight mb-4">Vagas em Aberto</h1>
         <p className="text-muted-foreground text-lg mb-8">Faça parte do nosso time e ajude a transformar o futuro.</p>
 
-        {/* NOVO: Barra de Busca */}
         <div className="relative max-w-xl mx-auto">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input
@@ -159,6 +214,15 @@ export default function Carreiras() {
           </div>
 
           <DialogFooter className="mt-6 sm:justify-end gap-2 border-t pt-4">
+            {/* NOVO: Botão de Análise Prévia */}
+            <Button
+              variant="secondary"
+              className="mr-auto bg-primary/10 text-primary hover:bg-primary/20"
+              onClick={() => setIsAnaliseOpen(true)}
+            >
+              ✨ Analisar Aderência com IA
+            </Button>
+
             <Button variant="outline" onClick={() => setVagaDetalhes(null)}>
               Voltar
             </Button>
@@ -174,12 +238,115 @@ export default function Carreiras() {
         </DialogContent>
       </Dialog>
 
-      {/* MODAL DE ENVIO DE CURRÍCULO */}
+      {/* NOVO: MODAL DE ANÁLISE PRÉVIA COM IA */}
+      <Dialog open={isAnaliseOpen} onOpenChange={(open) => !open && resetAnaliseModal()}>
+        <DialogContent className="sm:max-w-md text-center flex flex-col items-center">
+          {!isAnalyzing && !analiseResult && (
+            <>
+              <DialogHeader className="w-full">
+                <DialogTitle className="text-center text-xl">Test Drive de Currículo</DialogTitle>
+                <DialogDescription className="text-center">
+                  Descubra suas chances antes de enviar. A nossa IA vai comparar o seu perfil com a vaga de{" "}
+                  <b>{vagaDetalhes?.titulo}</b>.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="w-full mt-6 flex flex-col items-center justify-center border-2 border-dashed border-primary/30 rounded-lg p-8 bg-muted/20">
+                <UploadCloud className="h-10 w-10 text-primary mb-4" />
+                <label className="cursor-pointer">
+                  <span className="bg-primary/10 text-primary px-4 py-2 rounded-md hover:bg-primary/20 transition-colors font-medium">
+                    {analiseFile ? analiseFile.name : "Selecionar PDF do Currículo"}
+                  </span>
+                  <input
+                    type="file"
+                    accept=".pdf"
+                    className="hidden"
+                    onChange={(e) => setAnaliseFile(e.target.files?.[0] || null)}
+                  />
+                </label>
+              </div>
+
+              <DialogFooter className="w-full mt-6">
+                <Button className="w-full" onClick={handleAnaliseSubmit} disabled={!analiseFile}>
+                  Gerar Análise com IA
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+
+          {isAnalyzing && (
+            <div className="py-12 flex flex-col items-center">
+              <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary mb-6"></div>
+              <h3 className="text-lg font-semibold">A Inteligência Artificial está lendo o seu currículo...</h3>
+              <p className="text-sm text-muted-foreground mt-2 text-center">
+                Mapeando competências, cruzando requisitos e calculando a aderência.
+              </p>
+            </div>
+          )}
+
+          {analiseResult && (
+            <div className="w-full flex flex-col items-center pt-4">
+              <div
+                className="relative w-24 h-24 mb-6 flex items-center justify-center rounded-full border-4"
+                style={{ borderColor: analiseResult.score >= 70 ? "#22c55e" : "#ef4444" }}
+              >
+                <span className="text-3xl font-bold">{analiseResult.score}</span>
+              </div>
+              <h3 className="text-2xl font-bold mb-6">
+                {analiseResult.score >= 70 ? "Ótima Aderência! 🎉" : "Pode Melhorar! 💡"}
+              </h3>
+
+              <div className="w-full space-y-4 text-left">
+                <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-green-500 font-semibold mb-2">
+                    <Star className="w-4 h-4" /> Pontos Fortes
+                  </div>
+                  <p className="text-sm">{analiseResult.pontos_fortes}</p>
+                </div>
+
+                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-red-500 font-semibold mb-2">
+                    <AlertTriangle className="w-4 h-4" /> O que a vaga pede e você não citou
+                  </div>
+                  <p className="text-sm">{analiseResult.o_que_falta}</p>
+                </div>
+              </div>
+
+              <div className="flex w-full gap-3 mt-8">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setAnaliseFile(null);
+                    setAnaliseResult(null);
+                  }}
+                >
+                  Tentar outro CV
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={() => {
+                    resetAnaliseModal();
+                    setSelectedVagaId(vagaDetalhes?.id || null);
+                    setVagaDetalhes(null);
+                  }}
+                >
+                  Continuar Candidatura
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL DE ENVIO DE CURRÍCULO (OFICIAL) */}
       <Dialog open={!!selectedVagaId} onOpenChange={(open) => !open && setSelectedVagaId(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Envie seu Currículo</DialogTitle>
-            <DialogDescription>Preencha os dados abaixo e anexe seu currículo em PDF.</DialogDescription>
+            <DialogDescription>
+              Preencha os dados abaixo e anexe seu currículo em PDF para a vaga oficial.
+            </DialogDescription>
           </DialogHeader>
           {selectedVagaId && <ResumeUploadForm vagaId={selectedVagaId} />}
         </DialogContent>
