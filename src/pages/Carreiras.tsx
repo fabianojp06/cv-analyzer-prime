@@ -338,4 +338,54 @@ export default function Carreiras() {
           {analiseResult && (
             <div className="w-full flex flex-col items-center pt-4">
               <div className="relative w-24 h-24 mb-6 flex items-center justify-center rounded-full border-4" 
-                   style
+                   style={{ borderColor: analiseResult.score >= 70 ? '#22c55e' : analiseResult.score >= 40 ? '#eab308' : '#ef4444' }}>
+                <span className="text-2xl font-bold">{analiseResult.score}%</span>
+              </div>
+
+              <h3 className="text-lg font-semibold mb-4">Resultado da Análise</h3>
+
+              <div className="w-full text-left space-y-4">
+                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+                  <h4 className="font-semibold flex items-center gap-2 text-green-400 mb-2">
+                    <Star className="w-4 h-4" /> Pontos Fortes
+                  </h4>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{analiseResult.pontos_fortes}</p>
+                </div>
+
+                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+                  <h4 className="font-semibold flex items-center gap-2 text-yellow-400 mb-2">
+                    <AlertTriangle className="w-4 h-4" /> O que Falta
+                  </h4>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{analiseResult.o_que_falta}</p>
+                </div>
+              </div>
+
+              <DialogFooter className="w-full mt-6">
+                <Button className="w-full" variant="outline" onClick={resetAnaliseModal}>
+                  Fechar
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL DE CANDIDATURA */}
+      <Dialog open={!!selectedVagaId} onOpenChange={(open) => !open && setSelectedVagaId(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Enviar Candidatura</DialogTitle>
+            <DialogDescription>
+              Preencha o formulário abaixo para se candidatar a esta vaga.
+            </DialogDescription>
+          </DialogHeader>
+          <ResumeUploadForm
+            vagaId={selectedVagaId || ""}
+            onSuccess={() => setSelectedVagaId(null)}
+          />
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
