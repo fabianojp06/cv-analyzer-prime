@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Building, Search, UploadCloud, Star, AlertTriangle, FileText } from "lucide-react";
+import { MapPin, Building, Search, UploadCloud, Star, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 // Tipagem exata em Português
@@ -27,7 +27,7 @@ interface Vaga {
   departamento?: string;
 }
 
-// NOVO: Tipagem da resposta da IA
+// Tipagem da resposta da IA
 interface AnaliseResult {
   score: number;
   pontos_fortes: string;
@@ -45,7 +45,7 @@ export default function Carreiras() {
   const [vagaDetalhes, setVagaDetalhes] = useState<Vaga | null>(null);
   const [selectedVagaId, setSelectedVagaId] = useState<string | null>(null);
 
-  // NOVO: ESTADOS PARA A ANÁLISE PRÉVIA (TEST DRIVE)
+  // ESTADOS PARA A ANÁLISE PRÉVIA (TEST DRIVE)
   const [isAnaliseOpen, setIsAnaliseOpen] = useState(false);
   const [analiseFile, setAnaliseFile] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -87,7 +87,7 @@ export default function Carreiras() {
     );
   });
 
-  // NOVO: Função que envia o CV para a IA do n8n
+  // Função que envia o CV para a IA do n8n com Leitura Bruta Reforçada
   const handleAnaliseSubmit = async () => {
     if (!analiseFile || !vagaDetalhes) {
       toast({ title: "Atenção", description: "Selecione um currículo em PDF.", variant: "destructive" });
@@ -100,7 +100,6 @@ export default function Carreiras() {
     try {
       const formData = new FormData();
       formData.append("file", analiseFile);
-      // Enviamos a descrição da vaga para a IA ter o contexto do que cobrar
       formData.append("descricao_vaga", vagaDetalhes.descricao || "");
 
       const response = await fetch("http://localhost:5678/webhook/analise-previa-cv", {
@@ -108,15 +107,27 @@ export default function Carreiras() {
         body: formData,
       });
 
-      if (!response.ok) throw new Error("Falha na análise");
+      if (!response.ok) throw new Error("Falha na análise. Status: " + response.status);
 
-      let data = await response.json();
+      // 1. Pega a resposta bruta como texto (isso nunca falha de primeira)
+      const rawText = await response.text();
+      console.log("RESPOSTA BRUTA DO N8N:", rawText);
 
-      // MÁGICA AQUI: Se o n8n enviou o JSON dentro da variável 'text', o React desempacota sozinho!
-      if (data.text) {
-        data = JSON.parse(data.text);
-      } else if (typeof data === "string") {
-        data = JSON.parse(data);
+      let data;
+      try {
+        // 2. Tenta transformar o texto recebido em objeto
+        data = JSON.parse(rawText);
+
+        // 3. Desempacota se a IA escondeu a resposta real dentro de 'text' ou 'message.content'
+        if (data.text) {
+          data = JSON.parse(data.text);
+        } else if (data.message && data.message.content) {
+          data = JSON.parse(data.message.content);
+        }
+      } catch (parseError) {
+        console.error("Falha ao processar o JSON da IA:", parseError);
+        console.log("O texto que causou o erro foi:", rawText);
+        throw new Error("Formato de resposta inválido");
       }
 
       setAnaliseResult(data);
@@ -124,7 +135,7 @@ export default function Carreiras() {
       console.error(error);
       toast({
         title: "Erro na Análise",
-        description: "A IA não conseguiu ler o seu currículo. Tente novamente.",
+        description: "A IA não conseguiu estruturar a análise do seu currículo. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -132,7 +143,6 @@ export default function Carreiras() {
     }
   };
 
-  // Função para limpar o estado ao fechar o modal de Análise
   const resetAnaliseModal = () => {
     setIsAnaliseOpen(false);
     setAnaliseFile(null);
@@ -223,7 +233,6 @@ export default function Carreiras() {
           </div>
 
           <DialogFooter className="mt-6 sm:justify-end gap-2 border-t pt-4">
-            {/* NOVO: Botão de Análise Prévia */}
             <Button
               variant="secondary"
               className="mr-auto bg-primary/10 text-primary hover:bg-primary/20"
@@ -247,7 +256,7 @@ export default function Carreiras() {
         </DialogContent>
       </Dialog>
 
-      {/* NOVO: MODAL DE ANÁLISE PRÉVIA COM IA */}
+      {/* MODAL DE ANÁLISE PRÉVIA COM IA */}
       <Dialog open={isAnaliseOpen} onOpenChange={(open) => !open && resetAnaliseModal()}>
         <DialogContent className="sm:max-w-md text-center flex flex-col items-center">
           {!isAnalyzing && !analiseResult && (
