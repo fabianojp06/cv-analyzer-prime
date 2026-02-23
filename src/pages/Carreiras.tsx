@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { ResumeUploadForm } from "@/components/ResumeUploadForm";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -12,10 +13,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Building } from "lucide-react";
+import { MapPin, Building, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-// 1. Tipagem exata em Português (Combinando com o seu n8n)
+// Tipagem exata em Português
 interface Vaga {
   id?: string;
   titulo: string;
@@ -29,6 +30,9 @@ interface Vaga {
 export default function Carreiras() {
   const [vagas, setVagas] = useState<Vaga[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // NOVO: Estado para controlar o texto da busca
+  const [busca, setBusca] = useState("");
 
   // ESTADOS DE CONTROLE DOS MODAIS
   const [vagaDetalhes, setVagaDetalhes] = useState<Vaga | null>(null);
@@ -60,11 +64,34 @@ export default function Carreiras() {
     fetchVagas();
   }, [toast]);
 
+  // NOVO: Lógica de filtro em tempo real
+  const vagasFiltradas = vagas.filter((vaga) => {
+    const termo = busca.toLowerCase();
+    return (
+      vaga.titulo?.toLowerCase().includes(termo) ||
+      vaga.descricao?.toLowerCase().includes(termo) ||
+      vaga.requisitos?.toLowerCase().includes(termo) ||
+      vaga.departamento?.toLowerCase().includes(termo)
+    );
+  });
+
   return (
     <div className="container mx-auto py-10 px-4 max-w-5xl">
-      <div className="mb-10 text-center">
+      <div className="mb-8 text-center">
         <h1 className="text-4xl font-bold tracking-tight mb-4">Vagas em Aberto</h1>
-        <p className="text-muted-foreground text-lg">Faça parte do nosso time e ajude a transformar o futuro.</p>
+        <p className="text-muted-foreground text-lg mb-8">Faça parte do nosso time e ajude a transformar o futuro.</p>
+
+        {/* NOVO: Barra de Busca */}
+        <div className="relative max-w-xl mx-auto">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Buscar por cargo, tecnologia ou palavra-chave..."
+            className="pl-12 h-14 text-base rounded-full border-primary/20 bg-background/50 backdrop-blur-sm focus-visible:ring-primary shadow-sm"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+          />
+        </div>
       </div>
 
       {loading ? (
@@ -73,9 +100,13 @@ export default function Carreiras() {
         </div>
       ) : vagas.length === 0 ? (
         <div className="text-center py-20 text-muted-foreground">Nenhuma vaga aberta no momento. Volte em breve!</div>
+      ) : vagasFiltradas.length === 0 ? (
+        <div className="text-center py-20 text-muted-foreground">
+          Nenhuma vaga encontrada para "{busca}". Tente outros termos.
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {vagas.map((vaga) => (
+          {vagasFiltradas.map((vaga) => (
             <Card key={vaga.id} className="flex flex-col h-full hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex justify-between items-start mb-2">
@@ -150,7 +181,6 @@ export default function Carreiras() {
             <DialogTitle>Envie seu Currículo</DialogTitle>
             <DialogDescription>Preencha os dados abaixo e anexe seu currículo em PDF.</DialogDescription>
           </DialogHeader>
-          {/* Removido o onSuccess que não existia no componente original */}
           {selectedVagaId && <ResumeUploadForm vagaId={selectedVagaId} />}
         </DialogContent>
       </Dialog>
