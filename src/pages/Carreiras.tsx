@@ -32,23 +32,31 @@ interface AnaliseResult {
   o_que_falta: string;
 }
 
-// Deep search helper: recursively finds an object with "score" in any nested structure
-function extractAnaliseFromResponse(raw: any): AnaliseResult | null {
-  // If it's a string, try parsing it (handles markdown-wrapped JSON too)
+// Deep search helper: recursively finds score/pontos_fortes/o_que_falta in any nested structure
+function extractAnaliseFromResponse(raw: any, depth = 0): AnaliseResult | null {
+  if (depth > 10) return null; // prevent infinite recursion
+
+  // If it's a string, try parsing it (handles markdown-wrapped JSON, escaped JSON, etc.)
   if (typeof raw === "string") {
-    const cleaned = raw.replace(/```json\s*/gi, "").replace(/```/g, "").trim();
+    const cleaned = raw
+      .replace(/```json\s*/gi, "")
+      .replace(/```/g, "")
+      .trim();
+    
+    // Try JSON.parse
     try {
-      return extractAnaliseFromResponse(JSON.parse(cleaned));
+      const parsed = JSON.parse(cleaned);
+      return extractAnaliseFromResponse(parsed, depth + 1);
     } catch {
-      // Try regex extraction as last resort
+      // Not valid JSON — try regex extraction from the raw string
       const scoreMatch = cleaned.match(/["']?score["']?\s*:\s*(\d+)/i);
-      const fortesMatch = cleaned.match(/["']?pontos_fortes["']?\s*:\s*["']([^"']+)["']/i);
-      const faltaMatch = cleaned.match(/["']?(?:o_que_falta|pontos_fracos)["']?\s*:\s*["']([^"']+)["']/i);
+      const fortesMatch = cleaned.match(/["']?pontos_fortes["']?\s*:\s*["']([\s\S]*?)["']\s*(?:,|\})/i);
+      const faltaMatch = cleaned.match(/["']?(?:o_que_falta|pontos_fracos)["']?\s*:\s*["']([\s\S]*?)["']\s*(?:,|\})/i);
       if (scoreMatch) {
         return {
           score: parseInt(scoreMatch[1], 10),
-          pontos_fortes: fortesMatch?.[1]?.replace(/\\n/g, " ") || "",
-          o_que_falta: faltaMatch?.[1]?.replace(/\\n/g, " ") || "",
+          pontos_fortes: (fortesMatch?.[1] || "").replace(/\\n/g, "\n").replace(/\\"/g, '"'),
+          o_que_falta: (faltaMatch?.[1] || "").replace(/\\n/g, "\n").replace(/\\"/g, '"'),
         };
       }
       return null;
@@ -58,14 +66,15 @@ function extractAnaliseFromResponse(raw: any): AnaliseResult | null {
   // If it's an array, search each element
   if (Array.isArray(raw)) {
     for (const item of raw) {
-      const found = extractAnaliseFromResponse(item);
+      const found = extractAnaliseFromResponse(item, depth + 1);
       if (found) return found;
     }
     return null;
   }
 
-  // If it's an object, check if it has score directly, otherwise recurse into values
+  // If it's an object
   if (raw && typeof raw === "object") {
+    // Direct match: object has "score" property
     if (typeof raw.score !== "undefined") {
       return {
         score: Number(raw.score),
@@ -73,17 +82,13 @@ function extractAnaliseFromResponse(raw: any): AnaliseResult | null {
         o_que_falta: String(raw.o_que_falta || raw.pontos_fracos || ""),
       };
     }
-    // Check common n8n wrapper keys
-    for (const key of ["output", "response", "result", "data", "message", "text", "content", "body"]) {
-      if (raw[key]) {
-        const found = extractAnaliseFromResponse(raw[key]);
+
+    // Search ALL keys (not just common ones) to handle any n8n structure
+    for (const key in raw) {
+      if (raw[key] != null) {
+        const found = extractAnaliseFromResponse(raw[key], depth + 1);
         if (found) return found;
       }
-    }
-    // Fallback: search all values
-    for (const key in raw) {
-      const found = extractAnaliseFromResponse(raw[key]);
-      if (found) return found;
     }
   }
 
@@ -162,33 +167,38 @@ export default function Carreiras() {
       if (!response.ok) throw new Error("Falha na API");
       
       const rawText = await response.text();
-      console.log("TEXTO BRUTO RECEBIDO:", rawText);
+      console.log("=== ANALISE IA DEBUG ===");
+      console.log("STATUS:", response.status);
+      console.log("CONTENT-TYPE:", response.headers.get("content-type"));
+      console.log("RAW TEXT (first 500 chars):", rawText.substring(0, 500));
+      console.log("RAW TEXT FULL:", rawText);
 
       // Try to parse the raw response
       let parsed: any;
       try {
         parsed = JSON.parse(rawText);
-      } catch {
+        console.log("JSON PARSE OK - keys:", Object.keys(parsed));
+      } catch (e) {
+        console.log("JSON PARSE FALHOU:", e);
         parsed = rawText;
       }
 
-      console.log("PARSED:", JSON.stringify(parsed, null, 2));
-
       const extracted = extractAnaliseFromResponse(parsed);
-      console.log("EXTRACTED:", extracted);
+      console.log("EXTRACTED RESULT:", JSON.stringify(extracted));
 
-      if (extracted) {
+      if (extracted && extracted.score > 0) {
         setAnaliseResult({
-          score: extracted.score || 0,
-          pontos_fortes: extracted.pontos_fortes || "A IA analisou seu perfil, mas não conseguiu formatar os pontos fortes corretamente.",
-          o_que_falta: extracted.o_que_falta || "O currículo foi lido, mas a resposta da inteligência artificial falhou na estruturação.",
+          score: extracted.score,
+          pontos_fortes: extracted.pontos_fortes || "Pontos fortes não detalhados pela IA.",
+          o_que_falta: extracted.o_que_falta || "Lacunas não detalhadas pela IA.",
         });
       } else {
-        // Fallback: show that we received data but couldn't parse it
+        // Show raw text in fallback for debugging
+        const preview = rawText.substring(0, 200);
         setAnaliseResult({
-          score: 0,
-          pontos_fortes: "A IA analisou seu perfil, mas não conseguiu formatar os pontos fortes corretamente.",
-          o_que_falta: "O currículo foi lido, mas a resposta da inteligência artificial falhou na estruturação.",
+          score: extracted?.score || 0,
+          pontos_fortes: `[DEBUG] Parser não encontrou os dados. Resposta recebida: ${preview}`,
+          o_que_falta: "Verifique o console do navegador (F12) para ver os logs completos da resposta.",
         });
       }
 
