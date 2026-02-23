@@ -32,7 +32,9 @@ export default function Carreiras() {
     const fetchVagas = async () => {
       try {
         // Lembre-se de garantir que esta URL aponta para o seu n8n/ngrok
-        const response = await fetch("SUA_URL_NGROK_AQUI/webhook/listar-vagas");
+        const response = await fetch("https://nonabortively-aciniform-jacoby.ngrok-free.dev/webhook/listar-vagas", {
+          headers: { "ngrok-skip-browser-warning": "true" },
+        });
         if (!response.ok) throw new Error("Erro ao buscar vagas");
         const data = await response.json();
         setVagas(data);
