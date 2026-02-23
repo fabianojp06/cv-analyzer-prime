@@ -9,7 +9,7 @@ const activities = candidates
     const job = jobs.find((j) => j.id === c.jobId);
     return {
       id: c.id,
-      text: `A IA avaliou ${c.name.split(" ")[0]} para a vaga ${job?.title ?? "N/A"} com Score ${c.aiScore}`,
+      text: `A IA avaliou ${c.name.split(" ")[0]} para a vaga ${job?.titulo ?? "N/A"} com Score ${c.aiScore}`,
       score: c.aiScore,
       time: c.aiScore > 80 ? "há 2h" : c.aiScore > 60 ? "há 5h" : "há 1d",
     };
