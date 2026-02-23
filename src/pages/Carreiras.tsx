@@ -38,14 +38,11 @@ export default function Carreiras() {
   const [vagas, setVagas] = useState<Vaga[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Estado para controlar o texto da busca
   const [busca, setBusca] = useState("");
 
-  // ESTADOS DE CONTROLE DOS MODAIS ORIGINAIS
   const [vagaDetalhes, setVagaDetalhes] = useState<Vaga | null>(null);
   const [selectedVagaId, setSelectedVagaId] = useState<string | null>(null);
 
-  // ESTADOS PARA A ANÁLISE PRÉVIA (TEST DRIVE)
   const [isAnaliseOpen, setIsAnaliseOpen] = useState(false);
   const [analiseFile, setAnaliseFile] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -87,8 +84,7 @@ export default function Carreiras() {
     );
   });
 
-  // Função que envia o CV para a IA do n8n com Leitura Bruta Reforçada
-  // Função que envia o CV para a IA do n8n com Leitura Bruta Reforçada
+  // Função Invencível para extrair a resposta da OpenAI dentro do pacote do n8n
   const handleAnaliseSubmit = async () => {
     if (!analiseFile || !vagaDetalhes) {
       toast({ title: "Atenção", description: "Selecione um currículo em PDF.", variant: "destructive" });
@@ -109,43 +105,65 @@ export default function Carreiras() {
       });
 
       if (!response.ok) throw new Error("Falha na análise. Status: " + response.status);
-
+      
       const rawText = await response.text();
-      console.log("RESPOSTA BRUTA DO N8N:", rawText);
+      console.log("RESPOSTA BRUTA DO N8N:", rawText); 
 
-      let data;
-      try {
-        // 1. Conforma o texto num objeto genérico
-        data = JSON.parse(rawText);
+      let finalResult = null;
 
-        let stringJsonEscondida = null;
-
-        // 2. Procura ONDE a OpenAI escondeu a resposta dentro do objeto do n8n
-        if (data.content && Array.isArray(data.content) && data.content[0]?.text) {
-          // AQUI ESTAVA O SEGREDO! É assim que o seu n8n está a enviar: content[0].text
-          stringJsonEscondida = data.content[0].text;
-        } else if (data.text) {
-          stringJsonEscondida = data.text;
-        } else if (data.message?.content) {
-          stringJsonEscondida = data.message.content;
+      // CAÇA-TESOURO: Varre qualquer estrutura que o n8n tenha inventado de mandar
+      const extractResult = (inputRawText: string) => {
+        let jsonObj;
+        try { 
+          jsonObj = JSON.parse(inputRawText); 
+        } catch(e) { 
+          return null; 
         }
 
-        // 3. Se achou a string escondida, limpa qualquer sujeira (como crases do markdown) e converte
-        if (stringJsonEscondida) {
-          const textoLimpo = stringJsonEscondida
-            .replace(/```json/g, "")
-            .replace(/```/g, "")
-            .trim();
-          data = JSON.parse(textoLimpo);
-        }
-      } catch (parseError) {
-        console.error("Falha ao processar o JSON da IA:", parseError);
-        console.log("O texto que causou o erro foi:", rawText);
-        throw new Error("Formato de resposta inválido");
+        if (jsonObj && jsonObj.score !== undefined) return jsonObj;
+
+        let result = null;
+
+        // Função recursiva para entrar em todas as caixas (arrays/objetos)
+        const traverse = (obj: any) => {
+          if (!obj || typeof obj !== 'object') return;
+          if (result) return; 
+
+          for (const key in obj) {
+            const val = obj[key];
+            if (typeof val === 'string' && val.includes('"score"') && val.includes('"pontos_fortes"')) {
+              try {
+                // Remove as crases do markdown (```json ... ```) se a IA as enviou
+                const limpo = val.replace(/```json/g, '').replace(/```/g, '').trim();
+                const parsedIA = JSON.parse(limpo);
+                if (parsedIA && parsedIA.score !== undefined) {
+                  result = parsedIA;
+                  return;
+                }
+              } catch(e) {}
+            } else if (typeof val === 'object') {
+              traverse(val);
+            }
+          }
+        };
+
+        traverse(jsonObj);
+        return result;
+      };
+
+      finalResult = extractResult(rawText);
+
+      if (!finalResult) {
+        throw new Error("O objeto com score e pontos_fortes não foi encontrado.");
       }
+      
+      // Injeta os dados limpos na tela
+      setAnaliseResult({
+        score: Number(finalResult.score) || 0,
+        pontos_fortes: finalResult.pontos_fortes || "Análise de pontos fortes não retornada.",
+        o_que_falta: finalResult.o_que_falta || finalResult.pontos_fracos || "Análise de lacunas não retornada."
+      });
 
-      // 4. Agora sim, o data tem { score, pontos_fortes, o_que_falta } na raiz!
-      setAnaliseResult(data);
     } catch (error) {
       console.error(error);
       toast({
@@ -248,14 +266,14 @@ export default function Carreiras() {
           </div>
 
           <DialogFooter className="mt-6 sm:justify-end gap-2 border-t pt-4">
-            <Button
-              variant="secondary"
+            <Button 
+              variant="secondary" 
               className="mr-auto bg-primary/10 text-primary hover:bg-primary/20"
               onClick={() => setIsAnaliseOpen(true)}
             >
               ✨ Analisar Aderência com IA
             </Button>
-
+            
             <Button variant="outline" onClick={() => setVagaDetalhes(null)}>
               Voltar
             </Button>
@@ -274,26 +292,26 @@ export default function Carreiras() {
       {/* MODAL DE ANÁLISE PRÉVIA COM IA */}
       <Dialog open={isAnaliseOpen} onOpenChange={(open) => !open && resetAnaliseModal()}>
         <DialogContent className="sm:max-w-md text-center flex flex-col items-center">
+          
           {!isAnalyzing && !analiseResult && (
             <>
               <DialogHeader className="w-full">
                 <DialogTitle className="text-center text-xl">Test Drive de Currículo</DialogTitle>
                 <DialogDescription className="text-center">
-                  Descubra suas chances antes de enviar. A nossa IA vai comparar o seu perfil com a vaga de{" "}
-                  <b>{vagaDetalhes?.titulo}</b>.
+                  Descubra suas chances antes de enviar. A nossa IA vai comparar o seu perfil com a vaga de <b>{vagaDetalhes?.titulo}</b>.
                 </DialogDescription>
               </DialogHeader>
-
+              
               <div className="w-full mt-6 flex flex-col items-center justify-center border-2 border-dashed border-primary/30 rounded-lg p-8 bg-muted/20">
                 <UploadCloud className="h-10 w-10 text-primary mb-4" />
                 <label className="cursor-pointer">
                   <span className="bg-primary/10 text-primary px-4 py-2 rounded-md hover:bg-primary/20 transition-colors font-medium">
                     {analiseFile ? analiseFile.name : "Selecionar PDF do Currículo"}
                   </span>
-                  <input
-                    type="file"
-                    accept=".pdf"
-                    className="hidden"
+                  <input 
+                    type="file" 
+                    accept=".pdf" 
+                    className="hidden" 
                     onChange={(e) => setAnaliseFile(e.target.files?.[0] || null)}
                   />
                 </label>
@@ -319,71 +337,5 @@ export default function Carreiras() {
 
           {analiseResult && (
             <div className="w-full flex flex-col items-center pt-4">
-              <div
-                className="relative w-24 h-24 mb-6 flex items-center justify-center rounded-full border-4"
-                style={{ borderColor: analiseResult.score >= 70 ? "#22c55e" : "#ef4444" }}
-              >
-                <span className="text-3xl font-bold">{analiseResult.score}</span>
-              </div>
-              <h3 className="text-2xl font-bold mb-6">
-                {analiseResult.score >= 70 ? "Ótima Aderência! 🎉" : "Pode Melhorar! 💡"}
-              </h3>
-
-              <div className="w-full space-y-4 text-left">
-                <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
-                  <div className="flex items-center gap-2 text-green-500 font-semibold mb-2">
-                    <Star className="w-4 h-4" /> Pontos Fortes
-                  </div>
-                  <p className="text-sm">{analiseResult.pontos_fortes}</p>
-                </div>
-
-                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-                  <div className="flex items-center gap-2 text-red-500 font-semibold mb-2">
-                    <AlertTriangle className="w-4 h-4" /> O que a vaga pede e você não citou
-                  </div>
-                  <p className="text-sm">{analiseResult.o_que_falta}</p>
-                </div>
-              </div>
-
-              <div className="flex w-full gap-3 mt-8">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => {
-                    setAnaliseFile(null);
-                    setAnaliseResult(null);
-                  }}
-                >
-                  Tentar outro CV
-                </Button>
-                <Button
-                  className="flex-1"
-                  onClick={() => {
-                    resetAnaliseModal();
-                    setSelectedVagaId(vagaDetalhes?.id || null);
-                    setVagaDetalhes(null);
-                  }}
-                >
-                  Continuar Candidatura
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* MODAL DE ENVIO DE CURRÍCULO (OFICIAL) */}
-      <Dialog open={!!selectedVagaId} onOpenChange={(open) => !open && setSelectedVagaId(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Envie seu Currículo</DialogTitle>
-            <DialogDescription>
-              Preencha os dados abaixo e anexe seu currículo em PDF para a vaga oficial.
-            </DialogDescription>
-          </DialogHeader>
-          {selectedVagaId && <ResumeUploadForm vagaId={selectedVagaId} />}
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
+              <div className="relative w-24 h-24 mb-6 flex items-center justify-center rounded-full border-4" 
+                   style
