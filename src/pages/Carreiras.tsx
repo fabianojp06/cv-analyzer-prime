@@ -32,6 +32,64 @@ interface AnaliseResult {
   o_que_falta: string;
 }
 
+// Deep search helper: recursively finds an object with "score" in any nested structure
+function extractAnaliseFromResponse(raw: any): AnaliseResult | null {
+  // If it's a string, try parsing it (handles markdown-wrapped JSON too)
+  if (typeof raw === "string") {
+    const cleaned = raw.replace(/```json\s*/gi, "").replace(/```/g, "").trim();
+    try {
+      return extractAnaliseFromResponse(JSON.parse(cleaned));
+    } catch {
+      // Try regex extraction as last resort
+      const scoreMatch = cleaned.match(/["']?score["']?\s*:\s*(\d+)/i);
+      const fortesMatch = cleaned.match(/["']?pontos_fortes["']?\s*:\s*["']([^"']+)["']/i);
+      const faltaMatch = cleaned.match(/["']?(?:o_que_falta|pontos_fracos)["']?\s*:\s*["']([^"']+)["']/i);
+      if (scoreMatch) {
+        return {
+          score: parseInt(scoreMatch[1], 10),
+          pontos_fortes: fortesMatch?.[1]?.replace(/\\n/g, " ") || "",
+          o_que_falta: faltaMatch?.[1]?.replace(/\\n/g, " ") || "",
+        };
+      }
+      return null;
+    }
+  }
+
+  // If it's an array, search each element
+  if (Array.isArray(raw)) {
+    for (const item of raw) {
+      const found = extractAnaliseFromResponse(item);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  // If it's an object, check if it has score directly, otherwise recurse into values
+  if (raw && typeof raw === "object") {
+    if (typeof raw.score !== "undefined") {
+      return {
+        score: Number(raw.score),
+        pontos_fortes: String(raw.pontos_fortes || ""),
+        o_que_falta: String(raw.o_que_falta || raw.pontos_fracos || ""),
+      };
+    }
+    // Check common n8n wrapper keys
+    for (const key of ["output", "response", "result", "data", "message", "text", "content", "body"]) {
+      if (raw[key]) {
+        const found = extractAnaliseFromResponse(raw[key]);
+        if (found) return found;
+      }
+    }
+    // Fallback: search all values
+    for (const key in raw) {
+      const found = extractAnaliseFromResponse(raw[key]);
+      if (found) return found;
+    }
+  }
+
+  return null;
+}
+
 export default function Carreiras() {
   const [vagas, setVagas] = useState<Vaga[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,8 +153,9 @@ export default function Carreiras() {
       formData.append("file", analiseFile);
       formData.append("descricao_vaga", vagaDetalhes.descricao || "");
 
-      const response = await fetch("http://localhost:5678/webhook/analise-previa-cv", {
+      const response = await fetch("https://nonabortively-aciniform-jacoby.ngrok-free.dev/webhook/analise-previa-cv", {
         method: "POST",
+        headers: { "ngrok-skip-browser-warning": "true" },
         body: formData,
       });
 
@@ -105,61 +164,33 @@ export default function Carreiras() {
       const rawText = await response.text();
       console.log("TEXTO BRUTO RECEBIDO:", rawText);
 
-      let finalScore = 0;
-      let finalFortes = "";
-      let finalFalta = "";
-
-      // TENTATIVA 1: Procurar nos objetos do JSON
+      // Try to parse the raw response
+      let parsed: any;
       try {
-        const data = JSON.parse(rawText);
-        const findData = (obj: any): any => {
-          if (typeof obj === 'string') {
-            try {
-              const clean = obj.replace(/```json/g, '').replace(/```/g, '').trim();
-              const parsed = JSON.parse(clean);
-              if (parsed && typeof parsed.score !== 'undefined') return parsed;
-            } catch(e) {}
-          } else if (obj && typeof obj === 'object') {
-            if (typeof obj.score !== 'undefined') return obj;
-            for (const key in obj) {
-              const found = findData(obj[key]);
-              if (found) return found;
-            }
-          }
-          return null;
-        };
-        
-        const extracted = findData(data);
-        if (extracted) {
-          finalScore = Number(extracted.score);
-          finalFortes = extracted.pontos_fortes || "";
-          finalFalta = extracted.o_que_falta || extracted.pontos_fracos || "";
-        }
-      } catch (e) {
-        console.log("Falha no parser JSON, usando extrator bruto.");
+        parsed = JSON.parse(rawText);
+      } catch {
+        parsed = rawText;
       }
 
-      // TENTATIVA 2 (EXTRATOR BRUTO): Se falhou ou a IA mandou mal formatado, arranca por Regex
-      if (finalScore === 0) {
-        const sMatch = rawText.match(/["']?score["']?\s*:\s*(\d+)/i);
-        if (sMatch) finalScore = parseInt(sMatch[1], 10);
+      console.log("PARSED:", JSON.stringify(parsed, null, 2));
 
-        const ptMatch = rawText.match(/["']?pontos_fortes["']?\s*:\s*["']([\s\S]*?)["']\s*(?:,|})/i);
-        if (ptMatch) finalFortes = ptMatch[1].replace(/\\n/g, ' ').replace(/\\"/g, '"');
+      const extracted = extractAnaliseFromResponse(parsed);
+      console.log("EXTRACTED:", extracted);
 
-        const ftMatch = rawText.match(/["']?(?:o_que_falta|pontos_fracos)["']?\s*:\s*["']([\s\S]*?)["']\s*(?:,|})/i);
-        if (ftMatch) finalFalta = ftMatch[1].replace(/\\n/g, ' ').replace(/\\"/g, '"');
+      if (extracted) {
+        setAnaliseResult({
+          score: extracted.score || 0,
+          pontos_fortes: extracted.pontos_fortes || "A IA analisou seu perfil, mas não conseguiu formatar os pontos fortes corretamente.",
+          o_que_falta: extracted.o_que_falta || "O currículo foi lido, mas a resposta da inteligência artificial falhou na estruturação.",
+        });
+      } else {
+        // Fallback: show that we received data but couldn't parse it
+        setAnaliseResult({
+          score: 0,
+          pontos_fortes: "A IA analisou seu perfil, mas não conseguiu formatar os pontos fortes corretamente.",
+          o_que_falta: "O currículo foi lido, mas a resposta da inteligência artificial falhou na estruturação.",
+        });
       }
-
-      // Se mesmo com força bruta não achar os textos, mostra aviso amigável
-      if (!finalFortes) finalFortes = "O seu currículo tem elementos interessantes, mas a IA não detalhou os pontos fortes.";
-      if (!finalFalta) finalFalta = "A análise foi concluída, mas as lacunas não foram listadas.";
-
-      setAnaliseResult({
-        score: finalScore || 0,
-        pontos_fortes: finalFortes,
-        o_que_falta: finalFalta
-      });
 
     } catch (error) {
       console.error(error);
@@ -178,6 +209,12 @@ export default function Carreiras() {
     setAnaliseFile(null);
     setAnaliseResult(null);
     setIsAnalyzing(false);
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 70) return "hsl(160, 84%, 39%)";
+    if (score >= 40) return "hsl(38, 92%, 50%)";
+    return "hsl(347, 77%, 50%)";
   };
 
   return (
@@ -206,7 +243,7 @@ export default function Carreiras() {
         <div className="text-center py-20 text-muted-foreground">Nenhuma vaga aberta no momento. Volte em breve!</div>
       ) : vagasFiltradas.length === 0 ? (
         <div className="text-center py-20 text-muted-foreground">
-          Nenhuma vaga encontrada para "{busca}". Tente outros termos.
+          Nenhuma vaga encontrada para &quot;{busca}&quot;. Tente outros termos.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -225,9 +262,7 @@ export default function Carreiras() {
 
               <CardContent className="flex-grow">
                 <p className="text-sm text-muted-foreground line-clamp-3">
-                  {vaga.descricao
-                    ? vaga.descricao
-                    : "Clique em 'Ver Detalhes' para saber mais sobre esta oportunidade."}
+                  {vaga.descricao || "Clique em 'Ver Detalhes' para saber mais sobre esta oportunidade."}
                 </p>
               </CardContent>
 
@@ -257,7 +292,7 @@ export default function Carreiras() {
           </DialogHeader>
 
           <div className="mt-4 flex-1 overflow-y-auto pr-2">
-            <div className="text-sm text-white whitespace-pre-wrap leading-relaxed">
+            <div className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
               {vagaDetalhes?.descricao || "Descrição detalhada não informada para esta vaga."}
             </div>
           </div>
@@ -293,9 +328,9 @@ export default function Carreiras() {
           {!isAnalyzing && !analiseResult && (
             <>
               <DialogHeader className="w-full">
-                <DialogTitle className="text-center text-xl">Test Drive de Currículo</DialogTitle>
+                <DialogTitle className="text-center text-xl">Análise Prévia do Currículo</DialogTitle>
                 <DialogDescription className="text-center">
-                  Descubra suas chances antes de enviar. A nossa IA vai comparar o seu perfil com a vaga de <b>{vagaDetalhes?.titulo}</b>.
+                  Envie seu CV para descobrir sua compatibilidade com a vaga antes de se candidatar.
                 </DialogDescription>
               </DialogHeader>
               
@@ -303,4 +338,97 @@ export default function Carreiras() {
                 <UploadCloud className="h-10 w-10 text-primary mb-4" />
                 <label className="cursor-pointer">
                   <span className="bg-primary/10 text-primary px-4 py-2 rounded-md hover:bg-primary/20 transition-colors font-medium">
-                    {analise
+                    {analiseFile ? analiseFile.name : "Selecionar PDF do Currículo"}
+                  </span>
+                  <input
+                    type="file"
+                    accept=".pdf"
+                    className="hidden"
+                    onChange={(e) => setAnaliseFile(e.target.files?.[0] || null)}
+                  />
+                </label>
+              </div>
+
+              <Button
+                className="w-full mt-4"
+                onClick={handleAnaliseSubmit}
+                disabled={!analiseFile}
+              >
+                Analisar com IA
+              </Button>
+            </>
+          )}
+
+          {isAnalyzing && (
+            <div className="py-12 flex flex-col items-center gap-4">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+              <p className="text-muted-foreground">A IA está analisando seu currículo...</p>
+            </div>
+          )}
+
+          {analiseResult && (
+            <div className="w-full space-y-6 py-4">
+              {/* Score Ring */}
+              <div className="flex justify-center">
+                <div
+                  className="w-24 h-24 rounded-full border-4 flex items-center justify-center"
+                  style={{ borderColor: getScoreColor(analiseResult.score) }}
+                >
+                  <span
+                    className="text-2xl font-bold"
+                    style={{ color: getScoreColor(analiseResult.score) }}
+                  >
+                    {analiseResult.score}%
+                  </span>
+                </div>
+              </div>
+
+              {/* Pontos Fortes */}
+              <div className="text-left">
+                <h4 className="font-semibold flex items-center gap-2 mb-2">
+                  <Star className="h-4 w-4 text-yellow-500" /> Pontos Fortes
+                </h4>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                  {analiseResult.pontos_fortes}
+                </p>
+              </div>
+
+              {/* O que Falta */}
+              <div className="text-left">
+                <h4 className="font-semibold flex items-center gap-2 mb-2">
+                  <AlertTriangle className="h-4 w-4 text-orange-500" /> O que Falta
+                </h4>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                  {analiseResult.o_que_falta}
+                </p>
+              </div>
+
+              <Button className="w-full" onClick={resetAnaliseModal}>
+                Fechar
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL DE CANDIDATURA */}
+      <Dialog open={!!selectedVagaId} onOpenChange={(open) => !open && setSelectedVagaId(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Enviar Candidatura</DialogTitle>
+            <DialogDescription>
+              Envie seu currículo em PDF para se candidatar a esta vaga.
+            </DialogDescription>
+          </DialogHeader>
+          <ResumeUploadForm
+            vagaId={selectedVagaId || undefined}
+            onSuccess={() => {
+              setSelectedVagaId(null);
+              toast({ title: "Sucesso!", description: "Sua candidatura foi enviada com sucesso." });
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
