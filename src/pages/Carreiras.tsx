@@ -1,167 +1,152 @@
-import { useState, useEffect, useMemo } from "react";
-import { Sparkles, Search, MapPin, Briefcase, ArrowRight } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { useState, useEffect } from "react";
+// Verifique se o caminho da importação de Job e ResumeUploadForm batem com o seu projeto
+import { Job } from "../jobs"; // ou "@/types/jobs" dependendo da sua pasta
+import { ResumeUploadForm } from "../components/ResumeUploadForm"; // ou "@/components/ResumeUploadForm"
+
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ResumeUploadForm } from "@/components/ResumeUploadForm";
-
-const API_URL = "https://nonabortively-aciniform-jacoby.ngrok-free.dev/webhook/listar-vagas";
-
-interface Vaga {
-  id?: string;
-  titulo: string;
-  descricao: string;
-  requisitos: string;
-  status: string;
-  localizacao?: string;
-}
+import { MapPin, Building } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Carreiras() {
-  const [vagas, setVagas] = useState<Vaga[]>([]);
+  const [vagas, setVagas] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [selectedVagaId, setSelectedVagaId] = useState<string | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
+
+  // 1. ESTADOS DE CONTROLE DOS MODAIS
+  const [vagaDetalhes, setVagaDetalhes] = useState<Job | null>(null); // NOVO: Controla o modal de visualização de texto
+  const [selectedVagaId, setSelectedVagaId] = useState<string | null>(null); // MANTIDO: Controla o formulário de PDF
+
+  const { toast } = useToast();
 
   useEffect(() => {
-    (async () => {
+    // 2. BUSCA AS VAGAS NO SEU N8N
+    const fetchVagas = async () => {
       try {
-        const res = await fetch(API_URL, {
-          headers: { "ngrok-skip-browser-warning": "true" },
+        // Lembre-se de garantir que esta URL aponta para o seu n8n/ngrok
+        const response = await fetch("SUA_URL_NGROK_AQUI/webhook/listar-vagas");
+        if (!response.ok) throw new Error("Erro ao buscar vagas");
+        const data = await response.json();
+        setVagas(data);
+      } catch (error) {
+        console.error("Erro:", error);
+        toast({
+          title: "Erro de conexão",
+          description: "Não foi possível carregar as vagas no momento.",
+          variant: "destructive",
         });
-        if (!res.ok) throw new Error();
-        const data = await res.json();
-        setVagas(Array.isArray(data) ? data : []);
-      } catch {
-        setVagas([]);
       } finally {
         setLoading(false);
       }
-    })();
-  }, []);
+    };
 
-  const filtered = useMemo(() => {
-    if (!search.trim()) return vagas;
-    const q = search.toLowerCase();
-    return vagas.filter(
-      (v) =>
-        v.titulo?.toLowerCase().includes(q) ||
-        v.localizacao?.toLowerCase().includes(q) ||
-        v.descricao?.toLowerCase().includes(q)
-    );
-  }, [vagas, search]);
-
-  const handleCandidatar = (vaga: Vaga) => {
-    setSelectedVagaId(vaga.id || vaga.titulo);
-    setModalOpen(true);
-  };
+    fetchVagas();
+  }, [toast]);
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card/60 backdrop-blur-lg sticky top-0 z-40">
-        <div className="max-w-6xl mx-auto flex items-center justify-between px-4 sm:px-6 py-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-              <Sparkles className="h-4 w-4 text-primary" />
-            </div>
-            <span className="text-base font-bold text-foreground tracking-tight">
-              AI <span className="text-primary">ATS</span>
-            </span>
-          </div>
-          <Badge variant="secondary" className="text-xs">
-            {vagas.length} vaga{vagas.length !== 1 ? "s" : ""} aberta{vagas.length !== 1 ? "s" : ""}
-          </Badge>
+    <div className="container mx-auto py-10 px-4 max-w-5xl">
+      <div className="mb-10 text-center">
+        <h1 className="text-4xl font-bold tracking-tight mb-4">Vagas em Aberto</h1>
+        <p className="text-muted-foreground text-lg">Faça parte do nosso time e ajude a transformar o futuro.</p>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center items-center py-20">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
-      </header>
-
-      {/* Hero */}
-      <section className="relative overflow-hidden border-b border-border">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent" />
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24 relative">
-          <h1 className="text-3xl sm:text-5xl font-extrabold text-foreground tracking-tight leading-tight">
-            Encontre sua próxima
-            <br />
-            <span className="text-primary">oportunidade.</span>
-          </h1>
-          <p className="mt-4 text-muted-foreground max-w-lg text-sm sm:text-base">
-            Explore nossas vagas abertas e candidate-se em poucos cliques. Nosso sistema de IA analisa seu perfil para encontrar a melhor combinação.
-          </p>
-
-          {/* Search */}
-          <div className="mt-8 relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por cargo ou localização…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 bg-secondary/60 border-border h-11"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Job Cards */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          </div>
-        ) : filtered.length === 0 ? (
-          <p className="text-center text-muted-foreground py-20 text-sm">
-            {search ? "Nenhuma vaga encontrada para sua busca." : "Nenhuma vaga disponível no momento."}
-          </p>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((vaga, i) => (
-              <div
-                key={vaga.id || i}
-                className="group rounded-xl border border-border bg-card/60 backdrop-blur-sm p-5 flex flex-col gap-3 hover:border-primary/40 transition-colors"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-foreground text-sm leading-snug">{vaga.titulo}</h3>
-                  <Badge className="bg-[hsl(var(--score-high))]/15 text-[hsl(var(--score-high))] border-0 text-[10px] shrink-0">
-                    Aberta
-                  </Badge>
+      ) : vagas.length === 0 ? (
+        <div className="text-center py-20 text-muted-foreground">Nenhuma vaga aberta no momento. Volte em breve!</div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {vagas.map((vaga) => (
+            <Card key={vaga.id} className="flex flex-col h-full hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex justify-between items-start mb-2">
+                  <Badge variant="secondary">{vaga.departamento}</Badge>
+                  {vaga.status === "aberta" && <Badge className="bg-green-600 hover:bg-green-700">Ativa</Badge>}
                 </div>
+                <CardTitle className="text-xl">{vaga.titulo}</CardTitle>
+                <CardDescription className="flex items-center gap-1 mt-2">
+                  <MapPin className="h-4 w-4" /> {vaga.localizacao}
+                </CardDescription>
+              </CardHeader>
 
-                {vaga.localizacao && (
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <MapPin className="h-3 w-3" />
-                    {vaga.localizacao}
-                  </div>
-                )}
-
-                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
-                  {vaga.descricao}
+              <CardContent className="flex-grow">
+                {/* Um pequeno preview da descrição para instigar o candidato */}
+                <p className="text-sm text-muted-foreground line-clamp-3">
+                  {vaga.descricao
+                    ? vaga.descricao
+                    : "Clique em 'Ver Detalhes' para saber mais sobre esta oportunidade."}
                 </p>
+              </CardContent>
 
-                <div className="mt-auto pt-2">
-                  <Button
-                    size="sm"
-                    className="w-full gap-1.5 text-xs"
-                    onClick={() => handleCandidatar(vaga)}
-                  >
-                    <Briefcase className="h-3.5 w-3.5" />
-                    Candidatar-se
-                    <ArrowRight className="h-3 w-3 ml-auto opacity-60 group-hover:translate-x-0.5 transition-transform" />
-                  </Button>
-                </div>
-              </div>
-            ))}
+              <CardFooter>
+                {/* 3. BOTÃO ALTERADO PARA ABRIR O NOVO MODAL */}
+                <Button className="w-full" onClick={() => setVagaDetalhes(vaga)}>
+                  Ver Detalhes
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* 4. O NOVO MODAL DE DETALHES DA VAGA */}
+      <Dialog open={!!vagaDetalhes} onOpenChange={(open) => !open && setVagaDetalhes(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">{vagaDetalhes?.titulo}</DialogTitle>
+            <DialogDescription className="flex gap-4 text-md mt-3 items-center">
+              <Badge variant="secondary" className="flex items-center gap-1 text-sm px-3 py-1">
+                <Building className="w-4 h-4" /> {vagaDetalhes?.departamento}
+              </Badge>
+              <Badge variant="outline" className="flex items-center gap-1 text-sm px-3 py-1">
+                <MapPin className="w-4 h-4" /> {vagaDetalhes?.localizacao}
+              </Badge>
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* O segredo do whitespace-pre-wrap para manter parágrafos originais do banco */}
+          <div className="mt-4 flex-1 overflow-y-auto pr-2">
+            <div className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">
+              {vagaDetalhes?.descricao || "Descrição detalhada não informada para esta vaga."}
+            </div>
           </div>
-        )}
-      </section>
 
-      {/* Upload Modal */}
-      <Dialog open={modalOpen} onOpenChange={(open) => { setModalOpen(open); if (!open) setSelectedVagaId(null); }}>
+          <DialogFooter className="mt-6 sm:justify-end gap-2 border-t pt-4">
+            <Button variant="outline" onClick={() => setVagaDetalhes(null)}>
+              Voltar
+            </Button>
+            <Button
+              onClick={() => {
+                // A mágica acontece aqui: Abre o formulário de currículo e fecha este modal
+                setSelectedVagaId(vagaDetalhes?.id || null);
+                setVagaDetalhes(null);
+              }}
+            >
+              Quero me candidatar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 5. MODAL ORIGINAL DE ENVIO DE CURRÍCULO (FORMULÁRIO) */}
+      <Dialog open={!!selectedVagaId} onOpenChange={(open) => !open && setSelectedVagaId(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Enviar Currículo</DialogTitle>
-            <DialogDescription>Selecione seu PDF para análise automática pela IA.</DialogDescription>
+            <DialogTitle>Envie seu Currículo</DialogTitle>
+            <DialogDescription>Preencha os dados abaixo e anexe seu currículo em PDF.</DialogDescription>
           </DialogHeader>
-          <ResumeUploadForm vagaId={selectedVagaId ?? undefined} />
+
+          {selectedVagaId && <ResumeUploadForm vagaId={selectedVagaId} onSuccess={() => setSelectedVagaId(null)} />}
         </DialogContent>
       </Dialog>
     </div>
