@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 // Verifique se o caminho da importação de Job e ResumeUploadForm batem com o seu projeto
-import { Job } from "../jobs"; // ou "@/types/jobs" dependendo da sua pasta
+import { Job } from "@/data/jobs";
 import { ResumeUploadForm } from "../components/ResumeUploadForm"; // ou "@/components/ResumeUploadForm"
 
 import { Button } from "@/components/ui/button";
