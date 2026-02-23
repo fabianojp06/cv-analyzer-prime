@@ -101,53 +101,60 @@ export default function Carreiras() {
       });
 
       if (!response.ok) throw new Error("Falha na análise. Status: " + response.status);
-
+      
       const rawText = await response.text();
       let extractedData = null;
 
       try {
-        const parsedHttp = JSON.parse(rawText);
-        let aiText = "";
+        const parsedObj = JSON.parse(rawText);
 
-        // Lê exatamente o formato mostrado nos seus prints do n8n:
-        const targetObj = Array.isArray(parsedHttp) ? parsedHttp[0] : parsedHttp;
+        // A MÁGICA: Varre TUDO (recursivamente) até encontrar uma string que seja um JSON válido contendo o 'score'
+        const findScoreObj = (obj: any): any => {
+          if (typeof obj === "string") {
+            try {
+              const limpo = obj.replace(/```json/g, "").replace(/```/g, "").trim();
+              const parsedStr = JSON.parse(limpo);
+              if (parsedStr && typeof parsedStr.score !== "undefined") {
+                return parsedStr; // Achou o tesouro!
+              }
+            } catch (e) {
+              // Não é o JSON que queremos, continua procurando
+            }
+          } else if (obj && typeof obj === "object") {
+            // Se já estiver na raiz do objeto
+            if (typeof obj.score !== "undefined" && typeof obj.pontos_fortes !== "undefined") {
+              return obj;
+            }
+            // Entra em cada "gaveta" do objeto para procurar
+            for (const key in obj) {
+              const res = findScoreObj(obj[key]);
+              if (res) return res;
+            }
+          }
+          return null;
+        };
 
-        if (targetObj?.content?.[0]?.text) {
-          aiText = targetObj.content[0].text;
-        } else if (targetObj?.message?.content) {
-          aiText = targetObj.message.content;
-        } else if (targetObj?.text) {
-          aiText = targetObj.text;
-        }
+        extractedData = findScoreObj(parsedObj);
 
-        if (aiText) {
-          // Limpa possíveis formatações de código (```json) que a IA envia
-          const limpo = aiText
-            .replace(/```json/g, "")
-            .replace(/```/g, "")
-            .trim();
-          extractedData = JSON.parse(limpo);
-        } else if (targetObj?.score !== undefined) {
-          extractedData = targetObj; // Caso venha perfeito na raiz
-        }
       } catch (parseError) {
-        console.error("Erro ao converter texto da IA:", parseError);
+        console.error("Erro ao ler resposta HTTP:", parseError);
       }
 
-      // Trava de segurança: Se a IA enviar um texto bugado, não quebra a tela, mostra isso:
+      // Se a busca falhar, aplica o fallback
       if (!extractedData || extractedData.score === undefined) {
         extractedData = {
           score: 0,
           pontos_fortes: "A IA analisou seu perfil, mas não conseguiu formatar os pontos fortes corretamente.",
-          o_que_falta: "O currículo foi lido, mas a resposta da inteligência artificial falhou na estruturação.",
+          o_que_falta: "O currículo foi lido, mas a resposta da inteligência artificial falhou na estruturação."
         };
       }
 
       setAnaliseResult({
         score: Number(extractedData.score) || 0,
         pontos_fortes: extractedData.pontos_fortes || "Sem dados de pontos fortes.",
-        o_que_falta: extractedData.o_que_falta || extractedData.pontos_fracos || "Sem dados de lacunas.",
+        o_que_falta: extractedData.o_que_falta || extractedData.pontos_fracos || "Sem dados de lacunas."
       });
+
     } catch (error) {
       console.error(error);
       toast({
@@ -235,157 +242,4 @@ export default function Carreiras() {
             <DialogTitle className="text-2xl">{vagaDetalhes?.titulo}</DialogTitle>
             <DialogDescription className="flex gap-4 text-md mt-3 items-center">
               <Badge variant="secondary" className="flex items-center gap-1 text-sm px-3 py-1">
-                <Building className="w-4 h-4" /> {vagaDetalhes?.departamento || "Geral"}
-              </Badge>
-              <Badge variant="outline" className="flex items-center gap-1 text-sm px-3 py-1">
-                <MapPin className="w-4 h-4" /> {vagaDetalhes?.localizacao || "Remoto"}
-              </Badge>
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="mt-4 flex-1 overflow-y-auto pr-2">
-            <div className="text-sm text-white whitespace-pre-wrap leading-relaxed">
-              {vagaDetalhes?.descricao || "Descrição detalhada não informada para esta vaga."}
-            </div>
-          </div>
-
-          <DialogFooter className="mt-6 sm:justify-end gap-2 border-t pt-4">
-            <Button
-              variant="secondary"
-              className="mr-auto bg-primary/10 text-primary hover:bg-primary/20"
-              onClick={() => setIsAnaliseOpen(true)}
-            >
-              ✨ Analisar Aderência com IA
-            </Button>
-
-            <Button variant="outline" onClick={() => setVagaDetalhes(null)}>
-              Voltar
-            </Button>
-            <Button
-              onClick={() => {
-                setSelectedVagaId(vagaDetalhes?.id || null);
-                setVagaDetalhes(null);
-              }}
-            >
-              Quero me candidatar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* MODAL DE ANÁLISE PRÉVIA COM IA */}
-      <Dialog open={isAnaliseOpen} onOpenChange={(open) => !open && resetAnaliseModal()}>
-        <DialogContent className="sm:max-w-md text-center flex flex-col items-center">
-          {!isAnalyzing && !analiseResult && (
-            <>
-              <DialogHeader className="w-full">
-                <DialogTitle className="text-center text-xl">Test Drive de Currículo</DialogTitle>
-                <DialogDescription className="text-center">
-                  Descubra suas chances antes de enviar. A nossa IA vai comparar o seu perfil com a vaga de{" "}
-                  <b>{vagaDetalhes?.titulo}</b>.
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="w-full mt-6 flex flex-col items-center justify-center border-2 border-dashed border-primary/30 rounded-lg p-8 bg-muted/20">
-                <UploadCloud className="h-10 w-10 text-primary mb-4" />
-                <label className="cursor-pointer">
-                  <span className="bg-primary/10 text-primary px-4 py-2 rounded-md hover:bg-primary/20 transition-colors font-medium">
-                    {analiseFile ? analiseFile.name : "Selecionar PDF do Currículo"}
-                  </span>
-                  <input
-                    type="file"
-                    accept=".pdf"
-                    className="hidden"
-                    onChange={(e) => setAnaliseFile(e.target.files?.[0] || null)}
-                  />
-                </label>
-              </div>
-
-              <DialogFooter className="w-full mt-6">
-                <Button className="w-full" onClick={handleAnaliseSubmit} disabled={!analiseFile}>
-                  Gerar Análise com IA
-                </Button>
-              </DialogFooter>
-            </>
-          )}
-
-          {isAnalyzing && (
-            <div className="py-12 flex flex-col items-center">
-              <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary mb-6"></div>
-              <h3 className="text-lg font-semibold">A Inteligência Artificial está lendo o seu currículo...</h3>
-              <p className="text-sm text-muted-foreground mt-2 text-center">
-                Mapeando competências, cruzando requisitos e calculando a aderência.
-              </p>
-            </div>
-          )}
-
-          {analiseResult && (
-            <div className="w-full flex flex-col items-center pt-4">
-              <div
-                className="relative w-24 h-24 mb-6 flex items-center justify-center rounded-full border-4"
-                style={{ borderColor: analiseResult.score >= 70 ? "#22c55e" : "#ef4444" }}
-              >
-                <span className="text-3xl font-bold">{analiseResult.score}</span>
-              </div>
-              <h3 className="text-2xl font-bold mb-6">
-                {analiseResult.score >= 70 ? "Ótima Aderência! 🎉" : "Pode Melhorar! 💡"}
-              </h3>
-
-              <div className="w-full space-y-4 text-left">
-                <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
-                  <div className="flex items-center gap-2 text-green-500 font-semibold mb-2">
-                    <Star className="w-4 h-4" /> Pontos Fortes
-                  </div>
-                  <p className="text-sm">{analiseResult.pontos_fortes}</p>
-                </div>
-
-                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-                  <div className="flex items-center gap-2 text-red-500 font-semibold mb-2">
-                    <AlertTriangle className="w-4 h-4" /> O que a vaga pede e você não citou
-                  </div>
-                  <p className="text-sm">{analiseResult.o_que_falta}</p>
-                </div>
-              </div>
-
-              <div className="flex w-full gap-3 mt-8">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => {
-                    setAnaliseFile(null);
-                    setAnaliseResult(null);
-                  }}
-                >
-                  Tentar outro CV
-                </Button>
-                <Button
-                  className="flex-1"
-                  onClick={() => {
-                    resetAnaliseModal();
-                    setSelectedVagaId(vagaDetalhes?.id || null);
-                    setVagaDetalhes(null);
-                  }}
-                >
-                  Continuar Candidatura
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* MODAL DE ENVIO DE CURRÍCULO (OFICIAL) */}
-      <Dialog open={!!selectedVagaId} onOpenChange={(open) => !open && setSelectedVagaId(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Envie seu Currículo</DialogTitle>
-            <DialogDescription>
-              Preencha os dados abaixo e anexe seu currículo em PDF para a vaga oficial.
-            </DialogDescription>
-          </DialogHeader>
-          {selectedVagaId && <ResumeUploadForm vagaId={selectedVagaId} />}
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
+                <Building className="w-4 h-4" /> {vagaDetalhes?.depart
