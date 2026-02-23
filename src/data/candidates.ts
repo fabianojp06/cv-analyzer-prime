@@ -24,4 +24,9 @@ export interface Candidate {
   urlPdf: string;
 }
 
-export const candidates: Candidate[] = [];
+export interface Candidate {
+  id: string;
+  name: string;
+  // ... outras propriedades ...
+  perguntas_entrevista?: string; // <-- ADICIONE ESTA LINHA
+}
