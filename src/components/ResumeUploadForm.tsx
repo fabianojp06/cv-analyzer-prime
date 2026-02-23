@@ -8,9 +8,10 @@ const MAX_SIZE = 20 * 1024 * 1024;
 
 interface ResumeUploadFormProps {
   vagaId?: string;
+  onSuccess?: () => void;
 }
 
-export function ResumeUploadForm({ vagaId }: ResumeUploadFormProps) {
+export function ResumeUploadForm({ vagaId, onSuccess }: ResumeUploadFormProps) {
   const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
@@ -62,6 +63,7 @@ export function ResumeUploadForm({ vagaId }: ResumeUploadFormProps) {
       if (response.ok) {
         setStatus("success");
         clearFile();
+        onSuccess?.();
       } else {
         setStatus("error");
         setErrorMessage(`Erro no envio (${response.status}). Tente novamente.`);
