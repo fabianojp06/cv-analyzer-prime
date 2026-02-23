@@ -109,7 +109,16 @@ export default function Carreiras() {
       });
 
       if (!response.ok) throw new Error("Falha na análise");
-      const data = await response.json();
+
+      let data = await response.json();
+
+      // MÁGICA AQUI: Se o n8n enviou o JSON dentro da variável 'text', o React desempacota sozinho!
+      if (data.text) {
+        data = JSON.parse(data.text);
+      } else if (typeof data === "string") {
+        data = JSON.parse(data);
+      }
+
       setAnaliseResult(data);
     } catch (error) {
       console.error(error);
